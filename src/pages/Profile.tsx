@@ -1,0 +1,271 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Mail, Calendar, Edit2, Save, X, BookOpen, MessageCircle, Award } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
+import { userApi } from '../api';
+import { User as UserType, Article as ArticleType } from '../types';
+
+export const Profile = () => {
+  const { user, isAuthenticated } = useAuthStore();
+  const [profile, setProfile] = useState<UserType | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProfile, setEditedProfile] = useState({
+    username: '',
+    bio: '',
+    avatarUrl: '',
+  });
+  const [myArticles, setMyArticles] = useState<ArticleType[]>([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    fetchProfile();
+    fetchMyArticles();
+  }, [isAuthenticated, navigate, user?.id]);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await userApi.getUserById(user!.id);
+      if (response.success && response.data) {
+        setProfile(response.data);
+        setEditedProfile({
+          username: response.data.username,
+          bio: response.data.bio,
+          avatarUrl: response.data.avatarUrl,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  };
+
+  const fetchMyArticles = async () => {
+    try {
+      const response = await userApi.getUserArticles(user!.id);
+      if (response.success && response.data) {
+        setMyArticles(response.data.articles);
+      }
+    } catch (error) {
+      console.error('Failed to fetch articles:', error);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const response = await userApi.updateUser(user!.id, editedProfile);
+      if (response.success) {
+        setIsEditing(false);
+        fetchProfile();
+      }
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-accent-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <main className="container mx-auto px-4 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="relative h-48 bg-gradient-to-br from-primary-600 to-accent-500">
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
+            </div>
+
+            <div className="relative px-6 pb-6">
+              <div className="absolute -top-16 left-6">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.username}
+                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
+                  />
+                ) : (
+                  <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-4xl font-bold">
+                    {profile.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-start justify-between pt-16">
+                <div>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedProfile.username}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, username: e.target.value })}
+                      className="text-2xl font-bold text-gray-900 border-b border-gray-200 pb-1 focus:border-accent-500 focus:outline-none"
+                    />
+                  ) : (
+                    <h1 className="font-display text-2xl font-bold text-gray-900">
+                      {profile.username}
+                    </h1>
+                  )}
+                  <p className="text-gray-500 flex items-center gap-2 mt-1">
+                    <Mail className="w-4 h-4" />
+                    {profile.email}
+                  </p>
+                </div>
+                {isEditing ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      className="flex items-center gap-1 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
+                    >
+                      <Save className="w-4 h-4" />
+                      保存
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditedProfile({
+                          username: profile.username,
+                          bio: profile.bio,
+                          avatarUrl: profile.avatarUrl,
+                        });
+                      }}
+                      className="flex items-center gap-1 px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      取消
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1 px-4 py-2 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    编辑资料
+                  </button>
+                )}
+              </div>
+
+              {isEditing ? (
+                <textarea
+                  value={editedProfile.bio}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
+                  placeholder="介绍一下自己..."
+                  className="w-full mt-4 p-4 border border-gray-200 rounded-lg focus:border-accent-500 focus:outline-none resize-none"
+                  rows={4}
+                />
+              ) : profile.bio ? (
+                <p className="mt-4 text-gray-600">{profile.bio}</p>
+              ) : (
+                <p className="mt-4 text-gray-400">暂无个人简介</p>
+              )}
+
+              <div className="flex items-center gap-6 mt-6 text-sm text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  注册于 {formatDate(profile.createdAt)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Award className="w-4 h-4" />
+                  {profile.role === 'admin' ? '管理员' : '普通用户'}
+                </span>
+              </div>
+            </div>
+
+            <div className="border-t grid grid-cols-3 divide-x">
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <BookOpen className="w-5 h-5 text-primary-600" />
+                  <span className="text-2xl font-bold text-gray-900">{profile.articleCount ?? 0}</span>
+                </div>
+                <p className="text-sm text-gray-500">文章数</p>
+              </div>
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <MessageCircle className="w-5 h-5 text-accent-500" />
+                  <span className="text-2xl font-bold text-gray-900">{profile.commentCount ?? 0}</span>
+                </div>
+                <p className="text-sm text-gray-500">评论数</p>
+              </div>
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Award className="w-5 h-5 text-purple-500" />
+                  <span className="text-2xl font-bold text-gray-900">0</span>
+                </div>
+                <p className="text-sm text-gray-500">获赞数</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 className="font-display text-xl font-bold mb-4">我的文章</h2>
+            {myArticles.length > 0 ? (
+              <div className="space-y-4">
+                {myArticles.map((article) => (
+                  <Link
+                    key={article.id}
+                    to={`/articles/${article.id}`}
+                    className="block p-4 border border-gray-100 rounded-lg hover:border-accent-200 hover:bg-accent-50/50 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">{article.title}</h3>
+                        {article.excerpt && (
+                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{article.excerpt}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-2">
+                          {article.category && (
+                            <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full">
+                              {article.category.name}
+                            </span>
+                          )}
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            article.status === 'published'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {article.status === 'published' ? '已发布' : '草稿'}
+                          </span>
+                        </div>
+                      </div>
+                      {article.publishedAt && (
+                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                          {new Date(article.publishedAt).toLocaleDateString('zh-CN')}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>暂无文章，开始创作吧！</p>
+                <Link
+                  to="/admin/articles/new"
+                  className="inline-block mt-4 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
+                >
+                  写文章
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
