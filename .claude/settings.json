@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s https://myblog-lyart-sigma.vercel.app/api/articles)"
+    ]
+  }
+}
