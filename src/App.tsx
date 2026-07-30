@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import ClickSpark from '@/components/ClickSpark';
+import { MusicPlayer } from '@/components/MusicPlayer';
 import { Home } from '@/pages/Home';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
@@ -61,6 +62,7 @@ const AuthProtected = ({ children }: { children: React.ReactNode }) => {
 export default function App() {
   return (
     <Router>
+      <MusicPlayer />
       <ClickSpark
         sparkColor="#f97316"
         sparkSize={8}

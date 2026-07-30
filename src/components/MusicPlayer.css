@@ -1,0 +1,182 @@
+/* 右下角悬浮按钮 */
+.music-fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 50;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: white;
+  border: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  color: #333;
+}
+
+.music-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+}
+
+.music-fab-active {
+  background-color: #10b981;
+  color: white;
+}
+
+/* 弹出面板 */
+.music-panel {
+  position: fixed;
+  bottom: 5rem;
+  right: 2rem;
+  z-index: 49;
+  width: 380px;
+  max-width: calc(100vw - 2rem);
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.music-panel-header {
+  padding: 0.5em;
+}
+
+.currentplaying {
+  display: flex;
+  margin: 0.5em;
+  align-items: center;
+}
+
+.spotify {
+  width: 40px;
+  height: 40px;
+  margin-right: 0.8em;
+}
+
+.heading {
+  color: black;
+  font-size: 1em;
+  font-weight: bold;
+  align-self: center;
+}
+
+/* 网易云嵌入区 */
+.music-embed {
+  padding: 0 0.75em;
+}
+
+.music-embed iframe {
+  border-radius: 8px;
+}
+
+/* 均衡器动画 */
+.music-equalizer {
+  display: flex;
+  justify-content: center;
+  padding: 0.8em 1em 1em;
+}
+
+.equalizer-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 30px;
+}
+
+.bar {
+  display: block;
+  width: 3px;
+  background-color: #10b981;
+  border-radius: 3px;
+  animation: equalize 1.2s infinite ease-in-out;
+}
+
+.bar1 { height: 12px; animation-delay: 0s; }
+.bar2 { height: 20px; animation-delay: 0.15s; }
+.bar3 { height: 8px;  animation-delay: 0.3s; }
+.bar4 { height: 24px; animation-delay: 0.45s; }
+.bar5 { height: 16px; animation-delay: 0.6s; }
+
+@keyframes equalize {
+  0%, 100% { height: 8px; }
+  50% { height: 24px; }
+}
+
+/* 悬浮按钮内 loader 动画 */
+.loader {
+  display: flex;
+  flex-direction: row;
+  height: 28px;
+  padding: 0 6px;
+  transform: rotate(180deg);
+  justify-content: right;
+  border-radius: 6px;
+  align-items: center;
+  gap: 2px;
+}
+
+.load {
+  width: 3px;
+  height: 24px;
+  background-color: #10b981;
+  animation: move6 1s infinite ease-in-out;
+  border-radius: 3px;
+}
+
+.load:nth-child(1) { animation-delay: 0.2s; }
+.load:nth-child(2) { animation-delay: 0.4s; }
+.load:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes move6 {
+  0% { height: 5px; }
+  25% { height: 14px; }
+  50% { height: 24px; }
+  100% { height: 5px; }
+}
+
+.play {
+  position: relative;
+  height: 14px;
+  width: 14px;
+  clip-path: polygon(50% 50%, 100% 50%, 75% 6.6%);
+  background-color: #333;
+  transform: rotate(-90deg);
+  align-self: center;
+  margin-left: 2px;
+}
+
+/* 暗色模式 */
+.dark .music-fab {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.dark .music-panel {
+  background-color: #1e293b;
+}
+
+.dark .heading {
+  color: #e2e8f0;
+}
+
+.dark .play {
+  background-color: #e2e8f0;
+}
