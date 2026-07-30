@@ -1,12 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Calendar, Edit2, Save, X, BookOpen, MessageCircle, Award } from 'lucide-react';
+import { User, Mail, Calendar, Edit2, Save, X, BookOpen, MessageCircle, Award, Camera } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { userApi } from '../api';
 import { User as UserType, Article as ArticleType } from '../types';
 
+// 压缩图片并转为 base64
+const compressImage = (file: File, maxWidth = 200, maxHeight = 200): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+        } else {
+          if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 export const Profile = () => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, updateUser } = useAuthStore();
   const [profile, setProfile] = useState<UserType | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState({
@@ -15,6 +43,8 @@ export const Profile = () => {
     avatarUrl: '',
   });
   const [myArticles, setMyArticles] = useState<ArticleType[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,6 +95,34 @@ export const Profile = () => {
     }
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('请选择图片文件');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const dataUrl = await compressImage(file);
+      setEditedProfile((prev) => ({ ...prev, avatarUrl: dataUrl }));
+      // 立即保存头像
+      const response = await userApi.updateUser(user!.id, { avatarUrl: dataUrl });
+      if (response.success) {
+        fetchProfile();
+        // 更新全局状态中的头像
+        updateUser({ avatarUrl: dataUrl });
+      }
+    } catch (error) {
+      console.error('Failed to upload avatar:', error);
+      alert('头像上传失败，请重试');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN', {
@@ -92,18 +150,45 @@ export const Profile = () => {
             </div>
 
             <div className="relative px-6 pb-6">
-              <div className="absolute -top-16 left-6">
-                {profile.avatarUrl ? (
-                  <img
-                    src={profile.avatarUrl}
-                    alt={profile.username}
-                    className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-4xl font-bold">
-                    {profile.username.charAt(0).toUpperCase()}
-                  </div>
-                )}
+              <div className="absolute -top-16 left-6 group">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="relative cursor-pointer"
+                >
+                  {uploading ? (
+                    <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-gray-200 flex items-center justify-center">
+                      <div className="animate-spin w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full" />
+                    </div>
+                  ) : profile.avatarUrl ? (
+                    <>
+                      <img
+                        src={profile.avatarUrl}
+                        alt={profile.username}
+                        className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
+                      />
+                      <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="w-8 h-8 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-4xl font-bold">
+                        {profile.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="w-8 h-8 text-white" />
+                      </div>
+                    </>
+                  )}
+                </button>
               </div>
 
               <div className="flex items-start justify-between pt-16">

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { ArticleCard } from '../components/ArticleCard';
 import { Sidebar } from '../components/Sidebar';
 import { Pagination } from '../components/Pagination';
-import { articleApi, categoryApi, tagApi } from '../api';
-import { Article, Category, Tag } from '../types';
-import { Sparkles } from 'lucide-react';
+import { articleApi, categoryApi, tagApi, noteApi } from '../api';
+import { Article, Category, Tag, Note } from '../types';
+import { Sparkles, BookOpen, ArrowRight } from 'lucide-react';
 
 export const Home = () => {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [popularArticles, setPopularArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -22,8 +24,9 @@ export const Home = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [articlesRes, popularRes, categoriesRes, tagsRes] = await Promise.all([
+      const [articlesRes, notesRes, popularRes, categoriesRes, tagsRes] = await Promise.all([
         articleApi.getArticles({ page: currentPage, limit: 6 }),
+        noteApi.getNotes({ limit: 6, status: 'published' }),
         articleApi.getPopularArticles(5),
         categoryApi.getCategories(),
         tagApi.getTags(),
@@ -32,6 +35,9 @@ export const Home = () => {
       if (articlesRes.success && articlesRes.data) {
         setArticles(articlesRes.data.articles);
         setTotalPages(articlesRes.data.pagination.pages);
+      }
+      if (notesRes.success && notesRes.data) {
+        setNotes(notesRes.data.notes);
       }
       if (popularRes.success && popularRes.data) {
         setPopularArticles(popularRes.data);
@@ -91,6 +97,12 @@ export const Home = () => {
               >
                 开始写作
               </a>
+              <a
+                href="/admin/notes/new"
+                className="px-6 py-3 bg-accent-500 text-white font-semibold rounded-lg hover:bg-accent-600 transition-all"
+              >
+                开始写笔记
+              </a>
             </div>
           </div>
         </div>
@@ -112,6 +124,59 @@ export const Home = () => {
                 ) : (
                   <div className="col-span-full text-center py-12 bg-white rounded-xl">
                     <p className="text-gray-500">暂无文章</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="mt-12">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-display text-2xl md:text-3xl font-bold flex items-center gap-2">
+                  <span className="w-1 h-8 bg-purple-500 rounded-full" />
+                  最新笔记
+                </h2>
+                <Link
+                  to="/notes"
+                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-accent-500 transition-colors"
+                >
+                  查看全部
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {notes.length > 0 ? (
+                  notes.map((note) => (
+                    <Link
+                      key={note.id}
+                      to={`/notes/${note.id}`}
+                      className="card hover:scale-[1.02] transition-transform duration-300 p-6"
+                    >
+                      <h3 className="font-display text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-accent-600 transition-colors">
+                        {note.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                        {note.excerpt || note.content.substring(0, 150)}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap gap-1">
+                          {note.tags.slice(0, 3).map((tag, i) => (
+                            <span key={i} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-full">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        {note.publishedAt && (
+                          <span className="text-xs text-gray-400">
+                            {new Date(note.publishedAt).toLocaleDateString('zh-CN')}
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12 bg-white rounded-xl">
+                    <BookOpen className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                    <p className="text-gray-500">暂无笔记</p>
                   </div>
                 )}
               </div>
