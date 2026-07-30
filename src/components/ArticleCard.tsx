@@ -5,9 +5,10 @@ import { Article } from '../types';
 interface ArticleCardProps {
   article: Article;
   featured?: boolean;
+  bare?: boolean;
 }
 
-export const ArticleCard = ({ article, featured = false }: ArticleCardProps) => {
+export const ArticleCard = ({ article, featured = false, bare = false }: ArticleCardProps) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -20,9 +21,10 @@ export const ArticleCard = ({ article, featured = false }: ArticleCardProps) => 
 
   return (
     <article
-      className={`card animate-fade-in ${
+      className={`${bare ? '' : 'card'} animate-fade-in ${
         featured ? 'col-span-full' : ''
-      } hover:scale-[1.02] transition-transform duration-300`}
+      } ${bare ? '' : 'hover:scale-[1.02]'} transition-transform duration-300`}
+      style={bare ? { background: 'transparent' } : undefined}
     >
       <div className="flex flex-col md:flex-row">
         {article.featuredImage && (

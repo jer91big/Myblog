@@ -8,6 +8,7 @@ import { Article, Category, Tag, Note } from '../types';
 import { Sparkles, BookOpen, ArrowRight } from 'lucide-react';
 import Waves from '../components/Waves';
 import SpecularButton from '../components/SpecularButton';
+import BorderGlow from '../components/BorderGlow';
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -151,7 +152,18 @@ export const Home = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {articles.length > 0 ? (
                   articles.map((article) => (
-                    <ArticleCard key={article.id} article={article} />
+                    <BorderGlow
+                      key={article.id}
+                      glowColor="30 90"
+                      backgroundColor="#ffffff"
+                      borderRadius={16}
+                      glowRadius={30}
+                      glowIntensity={0.8}
+                      coneSpread={20}
+                      colors={['#f97316', '#fb923c', '#fbbf24']}
+                    >
+                      <ArticleCard article={article} bare />
+                    </BorderGlow>
                   ))
                 ) : (
                   <div className="col-span-full text-center py-12 bg-white rounded-xl">
@@ -178,32 +190,42 @@ export const Home = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {notes.length > 0 ? (
                   notes.map((note) => (
-                    <Link
+                    <BorderGlow
                       key={note.id}
-                      to={`/notes/${note.id}`}
-                      className="card hover:scale-[1.02] transition-transform duration-300 p-6"
+                      glowColor="280 70"
+                      backgroundColor="#ffffff"
+                      borderRadius={16}
+                      glowRadius={30}
+                      glowIntensity={0.8}
+                      coneSpread={20}
+                      colors={['#a78bfa', '#c084fc', '#818cf8']}
                     >
-                      <h3 className="font-display text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-accent-600 transition-colors">
-                        {note.title}
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                        {note.excerpt || note.content.substring(0, 150)}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-wrap gap-1">
-                          {note.tags.slice(0, 3).map((tag, i) => (
-                            <span key={i} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-full">
-                              {tag}
+                      <Link
+                        to={`/notes/${note.id}`}
+                        className="block p-6 bg-transparent rounded-xl"
+                      >
+                        <h3 className="font-display text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-accent-600 transition-colors">
+                          {note.title}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                          {note.excerpt || note.content.substring(0, 150)}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-wrap gap-1">
+                            {note.tags.slice(0, 3).map((tag, i) => (
+                              <span key={i} className="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded-full">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                          {note.publishedAt && (
+                            <span className="text-xs text-gray-400">
+                              {new Date(note.publishedAt).toLocaleDateString('zh-CN')}
                             </span>
-                          ))}
+                          )}
                         </div>
-                        {note.publishedAt && (
-                          <span className="text-xs text-gray-400">
-                            {new Date(note.publishedAt).toLocaleDateString('zh-CN')}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
+                      </Link>
+                    </BorderGlow>
                   ))
                 ) : (
                   <div className="col-span-full text-center py-12 bg-white rounded-xl">
