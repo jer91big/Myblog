@@ -85,7 +85,7 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
     },
   };
 
-  let res = await authFetch(url, reqOptions);
+  let res = await fetch(url, reqOptions);
 
   // 401 且存在 refreshToken → 尝试自动续期
   if (res.status === 401 && localStorage.getItem('refreshToken')) {
@@ -102,7 +102,7 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...(options.headers as Record<string, string> || {}),
       };
-      res = await authFetch(url, reqOptions);
+      res = await fetch(url, reqOptions);
     }
   }
 
