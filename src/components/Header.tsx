@@ -46,26 +46,28 @@ export const Header = () => {
       }`}
     >
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">B</span>
-            </div>
-            <FuzzyText
-              fontSize={24}
-              fontWeight={700}
-              fontFamily="'Playfair Display', Georgia, serif"
-              color={showOpaque ? '#1e293b' : '#ffffff'}
-              baseIntensity={0.15}
-              hoverIntensity={0.4}
-              fuzzRange={20}
-              enableHover
-            >
-              MyBlog
-            </FuzzyText>
-          </Link>
+        <div className="flex items-center h-16 md:h-20">
+          <div className="flex-1 flex justify-start">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">B</span>
+              </div>
+              <FuzzyText
+                fontSize={24}
+                fontWeight={700}
+                fontFamily="'Playfair Display', Georgia, serif"
+                color={showOpaque ? '#1e293b' : '#ffffff'}
+                baseIntensity={0.15}
+                hoverIntensity={0.4}
+                fuzzRange={20}
+                enableHover
+              >
+                MyBlog
+              </FuzzyText>
+            </Link>
+          </div>
 
-          <nav className="hidden md:flex items-center">
+          <nav className="hidden md:flex items-center justify-center">
             <Dock
               items={[
                 { icon: <Home className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '首页', onClick: () => navigate('/'), className: location.pathname === '/' ? 'dock-item-active' : '' },
@@ -80,7 +82,7 @@ export const Header = () => {
             />
           </nav>
 
-          <div className="hidden md:flex items-center gap-4">
+          <div className="flex-1 flex justify-end items-center gap-4">
             <ThemeToggle />
             <form onSubmit={handleSearch} className="relative">
               <input
