@@ -6,6 +6,7 @@ import { Pagination } from '../components/Pagination';
 import { articleApi, categoryApi, tagApi, noteApi } from '../api';
 import { Article, Category, Tag, Note } from '../types';
 import { Sparkles, BookOpen, ArrowRight } from 'lucide-react';
+import { LineWaves } from '../components/LineWaves';
 
 export const Home = () => {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -66,10 +67,21 @@ export const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <section className="relative bg-gradient-to-br from-primary-900 via-primary-700 to-accent-600 text-white py-20 md:py-32 overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-accent-400 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-48 h-48 bg-primary-400 rounded-full blur-3xl" />
-        </div>
+        <LineWaves
+          speed={0.3}
+          innerLineCount={32}
+          outerLineCount={36}
+          warpIntensity={1}
+          rotation={-45}
+          edgeFadeWidth={0}
+          colorCycleSpeed={1}
+          brightness={0.15}
+          color1="#ffffff"
+          color2="#ffffff"
+          color3="#ffffff"
+          enableMouseInteraction
+          mouseInfluence={2}
+        />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full mb-6 animate-fade-in">
