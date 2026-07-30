@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   User,
+  Home,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -108,6 +109,13 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             </button>
 
             <div className="flex items-center gap-4">
+              <Link
+                to="/"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+              >
+                <Home className="w-4 h-4" />
+                <span>返回首页</span>
+              </Link>
               <span className="text-gray-600">欢迎, {user?.username}</span>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-medium">
                 {user?.username.charAt(0).toUpperCase()}
