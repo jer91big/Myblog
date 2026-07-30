@@ -6,7 +6,7 @@ import { Pagination } from '../components/Pagination';
 import { articleApi, categoryApi, tagApi, noteApi } from '../api';
 import { Article, Category, Tag, Note } from '../types';
 import { Sparkles, BookOpen, ArrowRight } from 'lucide-react';
-import { LineWaves } from '../components/LineWaves';
+import Waves from '../components/Waves';
 
 export const Home = () => {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -67,20 +67,17 @@ export const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <section className="relative bg-gradient-to-br from-primary-900 via-primary-700 to-accent-600 text-white py-20 md:py-32 overflow-hidden">
-        <LineWaves
-          speed={0.3}
-          innerLineCount={32}
-          outerLineCount={36}
-          warpIntensity={1}
-          rotation={-45}
-          edgeFadeWidth={0}
-          colorCycleSpeed={1}
-          brightness={0.15}
-          color1="#ffffff"
-          color2="#ffffff"
-          color3="#ffffff"
-          enableMouseInteraction
-          mouseInfluence={2}
+        <Waves
+          lineColor="rgba(255, 255, 255, 0.15)"
+          waveSpeedX={0.02}
+          waveSpeedY={0.01}
+          waveAmpX={40}
+          waveAmpY={20}
+          xGap={12}
+          yGap={36}
+          friction={0.93}
+          tension={0.005}
+          maxCursorMove={100}
         />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl">
