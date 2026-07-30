@@ -4,7 +4,8 @@
       "Bash(curl -s https://myblog-lyart-sigma.vercel.app/api/articles)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

@@ -10,10 +10,14 @@ import { ArticleDetail } from '@/pages/ArticleDetail';
 import { Search } from '@/pages/Search';
 import { CategoryList } from '@/pages/CategoryList';
 import { TagList } from '@/pages/TagList';
+import { Notes } from '@/pages/Notes';
+import { NoteDetail } from '@/pages/NoteDetail';
 import { AdminLayout } from '@/pages/admin/AdminLayout';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { ArticleManagement } from '@/pages/admin/ArticleManagement';
 import { ArticleEditor } from '@/pages/admin/ArticleEditor';
+import { NoteManagement } from '@/pages/admin/NoteManagement';
+import { NoteEditor } from '@/pages/admin/NoteEditor';
 import { CategoryManagement } from '@/pages/admin/CategoryManagement';
 import { TagManagement } from '@/pages/admin/TagManagement';
 import { CommentManagement } from '@/pages/admin/CommentManagement';
@@ -97,6 +101,22 @@ export default function App() {
             </PublicLayout>
           }
         />
+        <Route
+          path="/notes"
+          element={
+            <PublicLayout>
+              <Notes />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/notes/:id"
+          element={
+            <PublicLayout>
+              <NoteDetail />
+            </PublicLayout>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route
@@ -146,6 +166,36 @@ export default function App() {
             <AuthProtected>
               <AdminLayout>
                 <ArticleEditor />
+              </AdminLayout>
+            </AuthProtected>
+          }
+        />
+        <Route
+          path="/admin/notes"
+          element={
+            <AuthProtected>
+              <AdminLayout>
+                <NoteManagement />
+              </AdminLayout>
+            </AuthProtected>
+          }
+        />
+        <Route
+          path="/admin/notes/new"
+          element={
+            <AuthProtected>
+              <AdminLayout>
+                <NoteEditor />
+              </AdminLayout>
+            </AuthProtected>
+          }
+        />
+        <Route
+          path="/admin/notes/:id/edit"
+          element={
+            <AuthProtected>
+              <AdminLayout>
+                <NoteEditor />
               </AdminLayout>
             </AuthProtected>
           }

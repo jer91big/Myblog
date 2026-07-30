@@ -89,6 +89,20 @@ export interface CommentListResponse {
   pagination: Pagination;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  tags: string[];
+  author: User;
+  status: 'published' | 'draft';
+  views: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SearchResponse {
   articles: Article[];
   count: number;

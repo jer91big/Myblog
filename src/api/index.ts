@@ -4,6 +4,7 @@ import {
   Category,
   Tag,
   Comment,
+  Note,
   AuthResponse,
   ApiResponse,
   ArticleListResponse,
@@ -407,6 +408,62 @@ export const userApi = {
   getUserArticles: async (id: string, page?: number, limit?: number): Promise<ApiResponse<{ articles: Article[]; pagination: any }>> => {
     const response = await authFetch(buildUrl(`/users/${id}/articles`, { page, limit }), {
       method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+};
+
+export const noteApi = {
+  getNotes: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }): Promise<ApiResponse<{ notes: Note[]; pagination: any }>> => {
+    const response = await authFetch(buildUrl('/notes', params), {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+
+  getNoteById: async (id: string): Promise<ApiResponse<Note>> => {
+    const response = await authFetch(`${API_BASE_URL}/notes/${id}`, {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+
+  createNote: async (data: {
+    title: string;
+    content: string;
+    tags?: string[];
+    status: 'published' | 'draft';
+  }): Promise<ApiResponse<Note>> => {
+    const response = await authFetch(`${API_BASE_URL}/notes`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  updateNote: async (
+    id: string,
+    data: Partial<{ title: string; content: string; tags?: string[]; status: 'published' | 'draft' }>
+  ): Promise<ApiResponse<Note>> => {
+    const response = await authFetch(`${API_BASE_URL}/notes/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  deleteNote: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await authFetch(`${API_BASE_URL}/notes/${id}`, {
+      method: 'DELETE',
       headers: headers(),
     });
     return response.json();

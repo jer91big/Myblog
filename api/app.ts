@@ -18,6 +18,7 @@ import articleRoutes from './routes/articles.js'
 import categoryRoutes from './routes/categories.js'
 import tagRoutes from './routes/tags.js'
 import commentRoutes from './routes/comments.js'
+import noteRoutes from './routes/notes.js'
 import searchRoutes from './routes/search.js'
 import userRoutes from './routes/users.js'
 import sitemapRoutes from './routes/sitemap.js'
@@ -82,6 +83,7 @@ app.use('/api/articles', articleRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/tags', tagRoutes)
 app.use('/api/comments', commentRoutes)
+app.use('/api/notes', noteRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/sitemap', sitemapRoutes)

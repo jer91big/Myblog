@@ -100,6 +100,20 @@ export const Header = () => {
             >
               标签
             </Link>
+            <Link
+              to="/notes"
+              className={`font-medium transition-colors hover:text-accent-500 ${
+                location.pathname.includes('/notes')
+                  ? showOpaque
+                    ? 'text-primary-600'
+                    : 'text-accent-400'
+                  : showOpaque
+                  ? 'text-gray-700'
+                  : 'text-white/80'
+              }`}
+            >
+              笔记
+            </Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -204,6 +218,13 @@ export const Header = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 标签
+              </Link>
+              <Link
+                to="/notes"
+                className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                笔记
               </Link>
             </nav>
 

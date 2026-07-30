@@ -13,6 +13,7 @@ import {
   X,
   User,
   Home,
+  BookOpen,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -23,6 +24,7 @@ interface AdminLayoutProps {
 const menuItems = [
   { icon: LayoutDashboard, path: '/admin', label: '仪表盘' },
   { icon: FileText, path: '/admin/articles', label: '文章管理' },
+  { icon: BookOpen, path: '/admin/notes', label: '笔记管理' },
   { icon: FolderOpen, path: '/admin/categories', label: '分类管理' },
   { icon: Tag, path: '/admin/tags', label: '标签管理' },
   { icon: MessageSquare, path: '/admin/comments', label: '评论管理' },
