@@ -4,6 +4,7 @@ import { Menu, Search, User, LogOut, PenLine, LayoutDashboard, X, Home, FolderOp
 import { useAuthStore } from '../store/authStore';
 import FuzzyText from '../components/FuzzyText';
 import Dock from '../components/Dock';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -80,6 +81,7 @@ export const Header = () => {
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
+            <ThemeToggle />
             <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
