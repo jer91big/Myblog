@@ -77,13 +77,88 @@
   align-self: center;
 }
 
-/* 网易云嵌入区 */
+/* 网易云歌单卡片区 */
 .music-embed {
   padding: 0 0.75em;
 }
 
-.music-embed iframe {
+.music-playlist-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 1.5em 1em;
+  text-align: center;
+  color: white;
+}
+
+.music-wave-art {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  height: 60px;
+  margin-bottom: 1em;
+  position: relative;
+}
+
+.wave-dot {
+  width: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  animation: waveDance 0.8s infinite ease-in-out alternate;
+}
+
+.w1 { height: 20px; animation-delay: 0s; }
+.w2 { height: 35px; animation-delay: 0.1s; }
+.w3 { height: 25px; animation-delay: 0.2s; }
+.w4 { height: 40px; animation-delay: 0.3s; }
+.w5 { height: 30px; animation-delay: 0.4s; }
+
+.music-note {
+  position: absolute;
+  font-size: 1.5em;
+  animation: noteFloat 2s infinite ease-in-out;
+}
+
+@keyframes waveDance {
+  0% { transform: scaleY(0.6); }
+  100% { transform: scaleY(1.2); }
+}
+
+@keyframes noteFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.2); }
+}
+
+.music-playlist-title {
+  font-size: 1em;
+  font-weight: 700;
+  margin-bottom: 0.25em;
+}
+
+.music-playlist-hint {
+  font-size: 0.75em;
+  opacity: 0.8;
+  margin-bottom: 1em;
+}
+
+.music-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.6em 1.4em;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
+  color: white;
+  font-size: 0.9em;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.music-open-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.02);
 }
 
 /* 均衡器动画 */
