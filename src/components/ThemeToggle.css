@@ -28,6 +28,10 @@
   height: 100%;
   border-radius: 14px;
   transition: 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
 }
 
 .checkbox:checked ~ .slider {
@@ -45,10 +49,34 @@
   box-shadow: inset 8px -2px 0px 0px var(--light);
   background-color: var(--dark);
   transition: 0.3s;
+  z-index: 1;
 }
 
 .checkbox:checked ~ .slider::before {
   transform: translateX(28px);
   background-color: var(--dark);
   box-shadow: none;
+}
+
+.slider-icon {
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.slider-icon-sun {
+  color: #f59e0b;
+}
+
+.slider-icon-moon {
+  color: #a78bfa;
+}
+
+.checkbox:checked ~ .slider .slider-icon-sun {
+  opacity: 1;
+}
+
+.checkbox:not(:checked) ~ .slider .slider-icon-moon {
+  opacity: 1;
 }
