@@ -25,6 +25,15 @@ const buildUrl = (path: string, params?: Record<string, string | number | boolea
 };
 
 let accessToken = localStorage.getItem('accessToken');
+let refreshTokenValue = localStorage.getItem('refreshToken');
+let refreshPromise: Promise<boolean> | null = null;
+
+export const setTokens = (access: string, refresh: string) => {
+  accessToken = access;
+  refreshTokenValue = refresh;
+  localStorage.setItem('accessToken', access);
+  localStorage.setItem('refreshToken', refresh);
+};
 
 export const setToken = (token: string) => {
   accessToken = token;
@@ -33,7 +42,9 @@ export const setToken = (token: string) => {
 
 export const clearToken = () => {
   accessToken = '';
+  refreshTokenValue = '';
   localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
 };
 
 const headers = () => ({
@@ -41,9 +52,66 @@ const headers = () => ({
   ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
 });
 
+// 自动刷新 Token
+async function refreshAccessToken(): Promise<boolean> {
+  const storedRefresh = localStorage.getItem('refreshToken');
+  if (!storedRefresh) return false;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: storedRefresh }),
+    });
+    const data = await res.json();
+    if (data.success && data.data) {
+      setTokens(data.data.accessToken, data.data.refreshToken || storedRefresh);
+      return true;
+    }
+    clearToken();
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// 带自动续期的 fetch 包装
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const reqOptions: RequestInit = {
+    ...options,
+    headers: {
+      ...headers(),
+      ...(options.headers as Record<string, string> || {}),
+    },
+  };
+
+  let res = await authFetch(url, reqOptions);
+
+  // 401 且存在 refreshToken → 尝试自动续期
+  if (res.status === 401 && localStorage.getItem('refreshToken')) {
+    if (!refreshPromise) {
+      refreshPromise = refreshAccessToken().finally(() => {
+        refreshPromise = null;
+      });
+    }
+
+    const refreshed = await refreshPromise;
+    if (refreshed) {
+      reqOptions.headers = {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(options.headers as Record<string, string> || {}),
+      };
+      res = await authFetch(url, reqOptions);
+    }
+  }
+
+  return res;
+}
+
 export const authApi = {
   register: async (email: string, password: string, username: string): Promise<AuthResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ email, password, username }),
@@ -52,7 +120,7 @@ export const authApi = {
   },
 
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ email, password }),
@@ -61,7 +129,7 @@ export const authApi = {
   },
 
   getCurrentUser: async (): Promise<ApiResponse<User>> => {
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/me`, {
       method: 'GET',
       headers: headers(),
     });
@@ -77,7 +145,7 @@ export const articleApi = {
     tag?: string;
     status?: string;
   }): Promise<ApiResponse<ArticleListResponse>> => {
-    const response = await fetch(buildUrl('/articles', params), {
+    const response = await authFetch(buildUrl('/articles', params), {
       method: 'GET',
       headers: headers(),
     });
@@ -85,7 +153,7 @@ export const articleApi = {
   },
 
   getArticleById: async (id: string): Promise<ApiResponse<Article>> => {
-    const response = await fetch(`${API_BASE_URL}/articles/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/articles/${id}`, {
       method: 'GET',
       headers: headers(),
     });
@@ -103,7 +171,7 @@ export const articleApi = {
     metaTitle?: string;
     metaDescription?: string;
   }): Promise<ApiResponse<Article>> => {
-    const response = await fetch(`${API_BASE_URL}/articles`, {
+    const response = await authFetch(`${API_BASE_URL}/articles`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify(data),
@@ -125,7 +193,7 @@ export const articleApi = {
       metaDescription?: string;
     }>
   ): Promise<ApiResponse<Article>> => {
-    const response = await fetch(`${API_BASE_URL}/articles/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/articles/${id}`, {
       method: 'PUT',
       headers: headers(),
       body: JSON.stringify(data),
@@ -134,7 +202,7 @@ export const articleApi = {
   },
 
   deleteArticle: async (id: string): Promise<ApiResponse<void>> => {
-    const response = await fetch(`${API_BASE_URL}/articles/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/articles/${id}`, {
       method: 'DELETE',
       headers: headers(),
     });
@@ -142,7 +210,7 @@ export const articleApi = {
   },
 
   incrementViews: async (id: string): Promise<ApiResponse<{ views: number }>> => {
-    const response = await fetch(`${API_BASE_URL}/articles/${id}/views`, {
+    const response = await authFetch(`${API_BASE_URL}/articles/${id}/views`, {
       method: 'POST',
       headers: headers(),
     });
@@ -150,7 +218,7 @@ export const articleApi = {
   },
 
   toggleLike: async (id: string): Promise<ApiResponse<{ likes: number; liked: boolean }>> => {
-    const response = await fetch(`${API_BASE_URL}/articles/${id}/likes`, {
+    const response = await authFetch(`${API_BASE_URL}/articles/${id}/likes`, {
       method: 'POST',
       headers: headers(),
     });
@@ -158,7 +226,7 @@ export const articleApi = {
   },
 
   getPopularArticles: async (limit?: number): Promise<ApiResponse<Article[]>> => {
-    const response = await fetch(buildUrl('/articles/popular', { limit }), {
+    const response = await authFetch(buildUrl('/articles/popular', { limit }), {
       method: 'GET',
       headers: headers(),
     });
@@ -166,7 +234,7 @@ export const articleApi = {
   },
 
   getRelatedArticles: async (id: string, limit?: number): Promise<ApiResponse<Article[]>> => {
-    const response = await fetch(buildUrl(`/articles/${id}/related`, { limit }), {
+    const response = await authFetch(buildUrl(`/articles/${id}/related`, { limit }), {
       method: 'GET',
       headers: headers(),
     });
@@ -176,7 +244,7 @@ export const articleApi = {
 
 export const categoryApi = {
   getCategories: async (): Promise<ApiResponse<Category[]>> => {
-    const response = await fetch(`${API_BASE_URL}/categories`, {
+    const response = await authFetch(`${API_BASE_URL}/categories`, {
       method: 'GET',
       headers: headers(),
     });
@@ -184,7 +252,7 @@ export const categoryApi = {
   },
 
   createCategory: async (name: string): Promise<ApiResponse<Category>> => {
-    const response = await fetch(`${API_BASE_URL}/categories`, {
+    const response = await authFetch(`${API_BASE_URL}/categories`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ name }),
@@ -193,7 +261,7 @@ export const categoryApi = {
   },
 
   updateCategory: async (id: string, name: string): Promise<ApiResponse<Category>> => {
-    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/categories/${id}`, {
       method: 'PUT',
       headers: headers(),
       body: JSON.stringify({ name }),
@@ -202,7 +270,7 @@ export const categoryApi = {
   },
 
   deleteCategory: async (id: string): Promise<ApiResponse<void>> => {
-    const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/categories/${id}`, {
       method: 'DELETE',
       headers: headers(),
     });
@@ -212,7 +280,7 @@ export const categoryApi = {
 
 export const tagApi = {
   getTags: async (): Promise<ApiResponse<Tag[]>> => {
-    const response = await fetch(`${API_BASE_URL}/tags`, {
+    const response = await authFetch(`${API_BASE_URL}/tags`, {
       method: 'GET',
       headers: headers(),
     });
@@ -220,7 +288,7 @@ export const tagApi = {
   },
 
   createTag: async (name: string): Promise<ApiResponse<Tag>> => {
-    const response = await fetch(`${API_BASE_URL}/tags`, {
+    const response = await authFetch(`${API_BASE_URL}/tags`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ name }),
@@ -229,7 +297,7 @@ export const tagApi = {
   },
 
   deleteTag: async (id: string): Promise<ApiResponse<void>> => {
-    const response = await fetch(`${API_BASE_URL}/tags/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/tags/${id}`, {
       method: 'DELETE',
       headers: headers(),
     });
@@ -239,7 +307,7 @@ export const tagApi = {
 
 export const commentApi = {
   getComments: async (articleId: string, approved?: boolean): Promise<ApiResponse<CommentListResponse>> => {
-    const response = await fetch(buildUrl('/comments', { articleId, approved }), {
+    const response = await authFetch(buildUrl('/comments', { articleId, approved }), {
       method: 'GET',
       headers: headers(),
     });
@@ -247,7 +315,7 @@ export const commentApi = {
   },
 
   createComment: async (articleId: string, content: string, parentId?: string): Promise<ApiResponse<Comment>> => {
-    const response = await fetch(`${API_BASE_URL}/comments`, {
+    const response = await authFetch(`${API_BASE_URL}/comments`, {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({ articleId, content, parentId }),
@@ -256,7 +324,7 @@ export const commentApi = {
   },
 
   updateComment: async (id: string, content: string): Promise<ApiResponse<Comment>> => {
-    const response = await fetch(`${API_BASE_URL}/comments/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/comments/${id}`, {
       method: 'PUT',
       headers: headers(),
       body: JSON.stringify({ content }),
@@ -265,7 +333,7 @@ export const commentApi = {
   },
 
   deleteComment: async (id: string): Promise<ApiResponse<void>> => {
-    const response = await fetch(`${API_BASE_URL}/comments/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/comments/${id}`, {
       method: 'DELETE',
       headers: headers(),
     });
@@ -273,7 +341,7 @@ export const commentApi = {
   },
 
   approveComment: async (id: string): Promise<ApiResponse<Comment>> => {
-    const response = await fetch(`${API_BASE_URL}/comments/${id}/approve`, {
+    const response = await authFetch(`${API_BASE_URL}/comments/${id}/approve`, {
       method: 'POST',
       headers: headers(),
     });
@@ -281,7 +349,7 @@ export const commentApi = {
   },
 
   getPendingComments: async (): Promise<ApiResponse<CommentListResponse>> => {
-    const response = await fetch(`${API_BASE_URL}/comments/pending`, {
+    const response = await authFetch(`${API_BASE_URL}/comments/pending`, {
       method: 'GET',
       headers: headers(),
     });
@@ -291,7 +359,7 @@ export const commentApi = {
 
 export const searchApi = {
   searchArticles: async (q: string, type?: 'title' | 'content' | 'tag'): Promise<ApiResponse<SearchResponse>> => {
-    const response = await fetch(buildUrl('/search', { q, type }), {
+    const response = await authFetch(buildUrl('/search', { q, type }), {
       method: 'GET',
       headers: headers(),
     });
@@ -301,7 +369,7 @@ export const searchApi = {
 
 export const userApi = {
   getUsers: async (page?: number, limit?: number): Promise<ApiResponse<{ users: User[]; pagination: any }>> => {
-    const response = await fetch(buildUrl('/users', { page, limit }), {
+    const response = await authFetch(buildUrl('/users', { page, limit }), {
       method: 'GET',
       headers: headers(),
     });
@@ -309,7 +377,7 @@ export const userApi = {
   },
 
   getUserById: async (id: string): Promise<ApiResponse<User>> => {
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/users/${id}`, {
       method: 'GET',
       headers: headers(),
     });
@@ -320,7 +388,7 @@ export const userApi = {
     id: string,
     data: Partial<{ username: string; bio: string; avatarUrl: string }>
   ): Promise<ApiResponse<User>> => {
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/users/${id}`, {
       method: 'PUT',
       headers: headers(),
       body: JSON.stringify(data),
@@ -329,7 +397,7 @@ export const userApi = {
   },
 
   deleteUser: async (id: string): Promise<ApiResponse<void>> => {
-    const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/users/${id}`, {
       method: 'DELETE',
       headers: headers(),
     });
@@ -337,7 +405,7 @@ export const userApi = {
   },
 
   getUserArticles: async (id: string, page?: number, limit?: number): Promise<ApiResponse<{ articles: Article[]; pagination: any }>> => {
-    const response = await fetch(buildUrl(`/users/${id}/articles`, { page, limit }), {
+    const response = await authFetch(buildUrl(`/users/${id}/articles`, { page, limit }), {
       method: 'GET',
       headers: headers(),
     });

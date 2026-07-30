@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types';
-import { authApi, setToken, clearToken } from '../api';
+import { authApi, setTokens, clearToken } from '../api';
 
 interface AuthState {
   user: User | null;
@@ -25,7 +25,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.login(email, password);
       if (response.success && response.data) {
-        setToken(response.data.accessToken);
+        setTokens(response.data.accessToken, response.data.refreshToken);
         set({
           user: response.data.user,
           isAuthenticated: true,
@@ -50,7 +50,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authApi.register(email, password, username);
       if (response.success && response.data) {
-        setToken(response.data.accessToken);
+        setTokens(response.data.accessToken, response.data.refreshToken);
         set({
           user: response.data.user,
           isAuthenticated: true,
