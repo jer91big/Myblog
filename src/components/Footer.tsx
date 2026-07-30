@@ -19,7 +19,9 @@ export const Footer = () => {
             </p>
             <div className="flex items-center gap-4">
               <a
-                href="#"
+                href="https://github.com/jer91big"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-600 transition-colors"
               >
                 <Github className="w-5 h-5" />
