@@ -5,8 +5,8 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
-} from '../controllers/categoryController';
-import { authenticate, requireAdmin } from '../middleware/auth';
+} from '../controllers/categoryController.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 

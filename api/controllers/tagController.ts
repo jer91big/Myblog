@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { Tag } from '../models/Tag';
-import { Article } from '../models/Article';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { Tag } from '../models/Tag.js';
+import { Article } from '../models/Article.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 
 const createTagSchema = z.object({
   name: z.string().min(1).max(30),

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { Article } from '../models/Article';
-import { Category } from '../models/Category';
+import { Article } from '../models/Article.js';
+import { Category } from '../models/Category.js';
 
 export const generateSitemap = async (req: Request, res: Response): Promise<void> => {
   try {

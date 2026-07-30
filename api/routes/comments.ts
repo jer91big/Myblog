@@ -6,8 +6,8 @@ import {
   deleteComment,
   approveComment,
   getPendingComments,
-} from '../controllers/commentController';
-import { authenticate, requireAdmin } from '../middleware/auth';
+} from '../controllers/commentController.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 

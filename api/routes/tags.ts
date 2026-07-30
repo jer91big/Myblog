@@ -4,8 +4,8 @@ import {
   getTagById,
   createTag,
   deleteTag,
-} from '../controllers/tagController';
-import { authenticate, requireAdmin } from '../middleware/auth';
+} from '../controllers/tagController.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 

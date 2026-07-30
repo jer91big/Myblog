@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { User } from '../models/User';
-import { Article } from '../models/Article';
-import { Comment } from '../models/Comment';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { User } from '../models/User.js';
+import { Article } from '../models/Article.js';
+import { Comment } from '../models/Comment.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 
 const updateUserSchema = z.object({
   username: z.string().min(3).max(30).optional(),

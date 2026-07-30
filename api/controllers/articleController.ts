@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { Article } from '../models/Article';
-import { Category } from '../models/Category';
-import { Tag } from '../models/Tag';
-import { User } from '../models/User';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { Article } from '../models/Article.js';
+import { Category } from '../models/Category.js';
+import { Tag } from '../models/Tag.js';
+import { User } from '../models/User.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 import slugify from 'slugify';
 
 const createArticleSchema = z.object({

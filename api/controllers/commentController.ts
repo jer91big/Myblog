@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { Comment } from '../models/Comment';
-import { Article } from '../models/Article';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { Comment } from '../models/Comment.js';
+import { Article } from '../models/Article.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 
 const createCommentSchema = z.object({
   articleId: z.string(),

@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { Category } from '../models/Category';
-import { Article } from '../models/Article';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { Category } from '../models/Category.js';
+import { Article } from '../models/Article.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 
 const createCategorySchema = z.object({
   name: z.string().min(1).max(50),

@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { User } from '../models/User';
-import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwt';
-import { AuthenticatedRequest } from '../middleware/auth';
+import { User } from '../models/User.js';
+import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwt.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 
 const registerSchema = z.object({
   email: z.string().email(),

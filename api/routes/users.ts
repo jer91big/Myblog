@@ -5,8 +5,8 @@ import {
   updateUser,
   deleteUser,
   getUserArticles,
-} from '../controllers/userController';
-import { authenticate, requireAdmin } from '../middleware/auth';
+} from '../controllers/userController.js';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 

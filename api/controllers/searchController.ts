@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { Article } from '../models/Article';
-import { Tag } from '../models/Tag';
+import { Article } from '../models/Article.js';
+import { Tag } from '../models/Tag.js';
 
 export const searchArticles = async (req: Request, res: Response): Promise<void> => {
   try {

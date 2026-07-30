@@ -9,8 +9,8 @@ import {
   toggleLike,
   getPopularArticles,
   getRelatedArticles,
-} from '../controllers/articleController';
-import { authenticate, optionalAuth, requireAdmin } from '../middleware/auth';
+} from '../controllers/articleController.js';
+import { authenticate, optionalAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
