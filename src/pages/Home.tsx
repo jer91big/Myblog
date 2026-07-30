@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArticleCard } from '../components/ArticleCard';
 import { Sidebar } from '../components/Sidebar';
 import { Pagination } from '../components/Pagination';
@@ -7,8 +7,10 @@ import { articleApi, categoryApi, tagApi, noteApi } from '../api';
 import { Article, Category, Tag, Note } from '../types';
 import { Sparkles, BookOpen, ArrowRight } from 'lucide-react';
 import Waves from '../components/Waves';
+import SpecularButton from '../components/SpecularButton';
 
 export const Home = () => {
+  const navigate = useNavigate();
   const [articles, setArticles] = useState<Article[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [popularArticles, setPopularArticles] = useState<Article[]>([]);
@@ -93,25 +95,46 @@ export const Home = () => {
               在这里，你将发现最新的技术文章、编程心得和生活感悟。
               让我们一起学习、成长、分享。
             </p>
-            <div className="flex flex-wrap gap-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-              <a
-                href="/articles/category/all"
-                className="px-6 py-3 bg-white text-primary-900 font-semibold rounded-lg hover:shadow-lg transition-all"
+            <div className="flex flex-wrap items-center gap-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+              <SpecularButton
+                onClick={() => navigate('/articles/category/all')}
+                size="md"
+                textColor="#ffffff"
+                lineColor="#ffffff"
+                baseColor="#1e3a5f"
+                intensity={1.2}
+                shineSize={8}
+                shineFade={35}
+                thickness={1.2}
               >
                 浏览文章
-              </a>
-              <a
-                href="/admin/articles/new"
-                className="px-6 py-3 bg-accent-500 text-white font-semibold rounded-lg hover:bg-accent-600 transition-all"
+              </SpecularButton>
+              <SpecularButton
+                onClick={() => navigate('/admin/articles/new')}
+                size="md"
+                textColor="#ffffff"
+                lineColor="#ffffff"
+                baseColor="#f97316"
+                intensity={1.2}
+                shineSize={8}
+                shineFade={35}
+                thickness={1.2}
               >
                 开始写作
-              </a>
-              <a
-                href="/admin/notes/new"
-                className="px-6 py-3 bg-accent-500 text-white font-semibold rounded-lg hover:bg-accent-600 transition-all"
+              </SpecularButton>
+              <SpecularButton
+                onClick={() => navigate('/admin/notes/new')}
+                size="md"
+                textColor="#ffffff"
+                lineColor="#ffffff"
+                baseColor="#f97316"
+                intensity={1.2}
+                shineSize={8}
+                shineFade={35}
+                thickness={1.2}
               >
                 开始写笔记
-              </a>
+              </SpecularButton>
             </div>
           </div>
         </div>
