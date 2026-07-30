@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, Search, User, LogOut, PenLine, LayoutDashboard, X } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import FuzzyText from '../components/FuzzyText';
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -48,13 +49,18 @@ export const Header = () => {
             <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">B</span>
             </div>
-            <span
-              className={`font-display text-xl md:text-2xl font-bold transition-colors ${
-                showOpaque ? 'text-primary-900' : 'text-white'
-              }`}
+            <FuzzyText
+              fontSize={24}
+              fontWeight={700}
+              fontFamily="'Playfair Display', Georgia, serif"
+              color={showOpaque ? '#1e293b' : '#ffffff'}
+              baseIntensity={0.15}
+              hoverIntensity={0.4}
+              fuzzRange={20}
+              enableHover
             >
               MyBlog
-            </span>
+            </FuzzyText>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
