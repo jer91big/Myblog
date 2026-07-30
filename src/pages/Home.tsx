@@ -152,18 +152,7 @@ export const Home = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {articles.length > 0 ? (
                   articles.map((article) => (
-                    <BorderGlow
-                      key={article.id}
-                      glowColor="30 90"
-                      backgroundColor="#ffffff"
-                      borderRadius={16}
-                      glowRadius={30}
-                      glowIntensity={0.8}
-                      coneSpread={20}
-                      colors={['#f97316', '#fb923c', '#fbbf24']}
-                    >
-                      <ArticleCard article={article} bare />
-                    </BorderGlow>
+                    <ArticleCard key={article.id} article={article} />
                   ))
                 ) : (
                   <div className="col-span-full text-center py-12 bg-white rounded-xl">

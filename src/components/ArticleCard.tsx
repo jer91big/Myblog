@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
 import { Eye, Heart, Calendar, User } from 'lucide-react';
 import { Article } from '../types';
+import BorderGlow from './BorderGlow';
 
 interface ArticleCardProps {
   article: Article;
   featured?: boolean;
-  bare?: boolean;
 }
 
-export const ArticleCard = ({ article, featured = false, bare = false }: ArticleCardProps) => {
+export const ArticleCard = ({ article, featured = false }: ArticleCardProps) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -20,12 +20,20 @@ export const ArticleCard = ({ article, featured = false, bare = false }: Article
   };
 
   return (
-    <article
-      className={`${bare ? '' : 'card'} animate-fade-in ${
-        featured ? 'col-span-full' : ''
-      } ${bare ? '' : 'hover:scale-[1.02]'} transition-transform duration-300`}
-      style={bare ? { background: 'transparent' } : undefined}
+    <BorderGlow
+      glowColor="30 90"
+      backgroundColor="#ffffff"
+      borderRadius={16}
+      glowRadius={30}
+      glowIntensity={0.8}
+      coneSpread={20}
+      colors={['#f97316', '#fb923c', '#fbbf24']}
     >
+      <article
+        className={`bg-white rounded-xl animate-fade-in ${
+          featured ? 'col-span-full' : ''
+        }`}
+      >
       <div className="flex flex-col md:flex-row">
         {article.featuredImage && (
           <div className="md:w-1/3 h-48 md:h-auto relative overflow-hidden">
@@ -107,5 +115,6 @@ export const ArticleCard = ({ article, featured = false, bare = false }: Article
         </div>
       </div>
     </article>
+    </BorderGlow>
   );
 };

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, Calendar, Tag } from 'lucide-react';
 import { noteApi } from '../api';
 import { Note } from '../types';
+import BorderGlow from '../components/BorderGlow';
 import { Pagination } from '../components/Pagination';
 
 export const Notes = () => {
@@ -71,13 +72,21 @@ export const Notes = () => {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {notes.map((note) => (
-                <Link
+                <BorderGlow
                   key={note.id}
-                  to={`/notes/${note.id}`}
-                  className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden group"
+                  glowColor="280 70"
+                  backgroundColor="#ffffff"
+                  borderRadius={16}
+                  glowRadius={30}
+                  glowIntensity={0.8}
+                  coneSpread={20}
+                  colors={['#a78bfa', '#c084fc', '#818cf8']}
                 >
-                  <div className="p-6">
-                    <h2 className="font-display text-lg font-bold text-gray-900 mb-3 group-hover:text-accent-600 transition-colors line-clamp-2">
+                  <Link
+                    to={`/notes/${note.id}`}
+                    className="block p-6"
+                  >
+                    <h2 className="font-display text-lg font-bold text-gray-900 mb-3 hover:text-accent-600 transition-colors line-clamp-2">
                       {note.title}
                     </h2>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-3">
@@ -97,8 +106,8 @@ export const Notes = () => {
                       <Calendar className="w-4 h-4" />
                       {formatDate(note.publishedAt)}
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                </BorderGlow>
               ))}
             </div>
 
