@@ -46,7 +46,7 @@
 
 .dock-label {
   position: absolute;
-  top: -1.75rem;
+  bottom: -1.75rem;
   left: 50%;
   width: fit-content;
   white-space: pre;
