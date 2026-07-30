@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, Search, User, LogOut, PenLine, LayoutDashboard, X } from 'lucide-react';
+import { Menu, Search, User, LogOut, PenLine, LayoutDashboard, X, Home, FolderOpen, Tag, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import FuzzyText from '../components/FuzzyText';
+import Dock from '../components/Dock';
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -63,63 +64,19 @@ export const Header = () => {
             </FuzzyText>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <Link
-              to="/"
-              className={`font-medium transition-colors hover:text-accent-500 ${
-                location.pathname === '/'
-                  ? showOpaque
-                    ? 'text-primary-600'
-                    : 'text-accent-400'
-                  : showOpaque
-                  ? 'text-gray-700'
-                  : 'text-white/80'
-              }`}
-            >
-              首页
-            </Link>
-            <Link
-              to="/articles/category/all"
-              className={`font-medium transition-colors hover:text-accent-500 ${
-                location.pathname.includes('/articles/category')
-                  ? showOpaque
-                    ? 'text-primary-600'
-                    : 'text-accent-400'
-                  : showOpaque
-                  ? 'text-gray-700'
-                  : 'text-white/80'
-              }`}
-            >
-              分类
-            </Link>
-            <Link
-              to="/articles/tag/all"
-              className={`font-medium transition-colors hover:text-accent-500 ${
-                location.pathname.includes('/articles/tag')
-                  ? showOpaque
-                    ? 'text-primary-600'
-                    : 'text-accent-400'
-                  : showOpaque
-                  ? 'text-gray-700'
-                  : 'text-white/80'
-              }`}
-            >
-              标签
-            </Link>
-            <Link
-              to="/notes"
-              className={`font-medium transition-colors hover:text-accent-500 ${
-                location.pathname.includes('/notes')
-                  ? showOpaque
-                    ? 'text-primary-600'
-                    : 'text-accent-400'
-                  : showOpaque
-                  ? 'text-gray-700'
-                  : 'text-white/80'
-              }`}
-            >
-              笔记
-            </Link>
+          <nav className="hidden md:flex items-center">
+            <Dock
+              items={[
+                { icon: <Home className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '首页', onClick: () => navigate('/'), className: location.pathname === '/' ? 'dock-item-active' : '' },
+                { icon: <FolderOpen className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '分类', onClick: () => navigate('/articles/category/all'), className: location.pathname.includes('/articles/category') ? 'dock-item-active' : '' },
+                { icon: <Tag className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '标签', onClick: () => navigate('/articles/tag/all'), className: location.pathname.includes('/articles/tag') ? 'dock-item-active' : '' },
+                { icon: <BookOpen className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '笔记', onClick: () => navigate('/notes'), className: location.pathname.includes('/notes') ? 'dock-item-active' : '' },
+              ]}
+              panelHeight={48}
+              baseItemSize={40}
+              magnification={56}
+              distance={120}
+            />
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
