@@ -19,6 +19,7 @@
     "@tiptap/extension-text-style": "^2.9.1",
     "@tiptap/react": "^2.9.1",
     "@tiptap/starter-kit": "^2.9.1",
+    "aplayer": "^1.10.1",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
