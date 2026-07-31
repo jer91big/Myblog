@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Calendar, Edit2, Save, X, BookOpen, MessageCircle, Award, Camera } from 'lucide-react';
+import { User, Mail, Calendar, Edit2, Save, X, BookOpen, MessageCircle, Award, Camera, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { userApi } from '../api';
-import { User as UserType, Article as ArticleType } from '../types';
+import { userApi, articleApi, noteApi } from '../api';
+import { User as UserType, Article as ArticleType, Note as NoteType } from '../types';
 
 // 压缩图片并转为 base64
 const compressImage = (file: File, maxWidth = 200, maxHeight = 200): Promise<string> => {
@@ -43,6 +43,7 @@ export const Profile = () => {
     avatarUrl: '',
   });
   const [myArticles, setMyArticles] = useState<ArticleType[]>([]);
+  const [myNotes, setMyNotes] = useState<NoteType[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ export const Profile = () => {
     }
     fetchProfile();
     fetchMyArticles();
+    fetchMyNotes();
   }, [isAuthenticated, navigate, user?.id]);
 
   const fetchProfile = async () => {
@@ -80,6 +82,48 @@ export const Profile = () => {
       }
     } catch (error) {
       console.error('Failed to fetch articles:', error);
+    }
+  };
+
+  const fetchMyNotes = async () => {
+    try {
+      const response = await userApi.getUserNotes(user!.id);
+      if (response.success && response.data) {
+        setMyNotes(response.data.notes);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notes:', error);
+    }
+  };
+
+  const handleDeleteArticle = async (id: string) => {
+    if (!confirm('确定要删除这篇文章吗？删除后无法恢复。')) return;
+    try {
+      const response = await articleApi.deleteArticle(id);
+      if (response.success) {
+        fetchMyArticles();
+        fetchProfile();
+      } else {
+        alert(response.message || '删除失败');
+      }
+    } catch (error) {
+      console.error('Failed to delete article:', error);
+      alert('删除失败，请重试');
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    if (!confirm('确定要删除这篇笔记吗？删除后无法恢复。')) return;
+    try {
+      const response = await noteApi.deleteNote(id);
+      if (response.success) {
+        fetchMyNotes();
+      } else {
+        alert(response.message || '删除失败');
+      }
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+      alert('删除失败，请重试');
     }
   };
 
@@ -301,14 +345,13 @@ export const Profile = () => {
             {myArticles.length > 0 ? (
               <div className="space-y-4">
                 {myArticles.map((article) => (
-                  <Link
+                  <div
                     key={article.id}
-                    to={`/articles/${article.id}`}
-                    className="block p-4 border border-gray-100 rounded-lg hover:border-accent-200 hover:bg-accent-50/50 transition-all"
+                    className="group p-4 border border-gray-100 rounded-lg hover:border-accent-200 hover:bg-accent-50/50 transition-all"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate">{article.title}</h3>
+                      <Link to={`/articles/${article.id}`} className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate group-hover:text-accent-600 transition-colors">{article.title}</h3>
                         {article.excerpt && (
                           <p className="text-sm text-gray-500 mt-1 line-clamp-2">{article.excerpt}</p>
                         )}
@@ -325,15 +368,31 @@ export const Profile = () => {
                           }`}>
                             {article.status === 'published' ? '已发布' : '草稿'}
                           </span>
+                          {article.publishedAt && (
+                            <span className="text-xs text-gray-400">
+                              {new Date(article.publishedAt).toLocaleDateString('zh-CN')}
+                            </span>
+                          )}
                         </div>
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/admin/articles/${article.id}/edit`}
+                          className="p-2 text-gray-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg transition-colors"
+                          title="编辑"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteArticle(article.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      {article.publishedAt && (
-                        <span className="text-xs text-gray-400 whitespace-nowrap">
-                          {new Date(article.publishedAt).toLocaleDateString('zh-CN')}
-                        </span>
-                      )}
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -345,6 +404,75 @@ export const Profile = () => {
                   className="inline-block mt-4 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
                 >
                   写文章
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 className="font-display text-xl font-bold mb-4">我的笔记</h2>
+            {myNotes.length > 0 ? (
+              <div className="space-y-4">
+                {myNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="group p-4 border border-gray-100 rounded-lg hover:border-purple-200 hover:bg-purple-50/50 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <Link to={`/notes/${note.id}`} className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate group-hover:text-purple-600 transition-colors">{note.title}</h3>
+                        {note.excerpt && (
+                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{note.excerpt}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-2">
+                          {note.tags.slice(0, 3).map((tag, i) => (
+                            <span key={i} className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                              #{tag}
+                            </span>
+                          ))}
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            note.status === 'published'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {note.status === 'published' ? '已发布' : '草稿'}
+                          </span>
+                          {note.publishedAt && (
+                            <span className="text-xs text-gray-400">
+                              {new Date(note.publishedAt).toLocaleDateString('zh-CN')}
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/admin/notes/${note.id}/edit`}
+                          className="p-2 text-gray-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg transition-colors"
+                          title="编辑"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <BookOpen className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>暂无笔记，开始记录吧！</p>
+                <Link
+                  to="/admin/notes/new"
+                  className="inline-block mt-4 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
+                >
+                  写笔记
                 </Link>
               </div>
             )}

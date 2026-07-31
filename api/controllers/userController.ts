@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { User } from '../models/User.js';
 import { Article } from '../models/Article.js';
+import { Note } from '../models/Note.js';
 import { Comment } from '../models/Comment.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 
@@ -273,6 +274,62 @@ export const getUserArticles = async (
     });
   } catch (error) {
     console.error('Get user articles error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getUserNotes = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const { id } = req.params;
+
+    if (id !== req.user.id && req.user.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Forbidden' });
+      return;
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const notes = await Note.find({ authorId: id })
+      .skip(skip)
+      .limit(limit)
+      .sort({ publishedAt: -1 });
+
+    const total = await Note.countDocuments({ authorId: id });
+
+    res.json({
+      success: true,
+      data: {
+        notes: notes.map((note) => ({
+          id: note._id.toString(),
+          title: note.title,
+          excerpt: note.excerpt,
+          tags: note.tags,
+          status: note.status,
+          publishedAt: note.publishedAt,
+        })),
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get user notes error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

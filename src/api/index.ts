@@ -412,6 +412,14 @@ export const userApi = {
     });
     return response.json();
   },
+
+  getUserNotes: async (id: string, page?: number, limit?: number): Promise<ApiResponse<{ notes: Note[]; pagination: any }>> => {
+    const response = await authFetch(buildUrl(`/users/${id}/notes`, { page, limit }), {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
 };
 
 export const noteApi = {
