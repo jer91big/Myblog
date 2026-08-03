@@ -9,7 +9,9 @@
       "Bash(npx vite *)",
       "Bash(npx shadcn@latest add @react-bits/SpecularButton-JS-CSS --yes)",
       "Bash(npm install *)",
-      "Bash(npx shadcn@latest add @react-bits/FuzzyText-JS-CSS --yes)"
+      "Bash(npx shadcn@latest add @react-bits/FuzzyText-JS-CSS --yes)",
+      "Bash(curl -s \"https://myblog-lyart-sigma.vercel.app/api/music/playlist?id=17927582985\")",
+      "Bash(curl -sv 'https://music.163.com/api/song/enhance/player/url?ids=[22712179]&br=320000' -H 'User-Agent: Mozilla/5.0' -H 'Referer: https://music.163.com/' --max-time 15)"
     ]
   }
 }

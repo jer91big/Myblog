@@ -59,7 +59,8 @@ export const getPlaylist = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-// 获取歌曲播放地址（官方外链）
+// 获取歌曲播放地址
+// 优先尝试真实播放地址接口，失败则回退到官方外链
 export const getSongUrl = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.query.id as string;
@@ -68,10 +69,35 @@ export const getSongUrl = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const url = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+    // 尝试获取真实播放地址（免费歌曲可用）
+    try {
+      const response = await fetch(
+        `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,
+        {
+          headers: {
+            'User-Agent': UA,
+            Referer: 'https://music.163.com/',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const song = data?.data?.[0];
+        if (song?.url) {
+          res.json({ success: true, data: { url: song.url } });
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('enhance/player/url failed:', e);
+    }
+
+    // 回退：官方外链（版权受限歌曲会失败，返回 HTML）
+    const fallback = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
     res.json({
       success: true,
-      data: { url },
+      data: { url: fallback, restricted: true },
     });
   } catch (error) {
     console.error('Get song url error:', error);

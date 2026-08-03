@@ -55,7 +55,7 @@ export const MusicPlayer = () => {
           theme: '#10b981',
         }));
 
-        playerRef.current = new APlayer({
+        const player = new APlayer({
           container: containerRef.current,
           audio,
           mini: false,
@@ -68,6 +68,17 @@ export const MusicPlayer = () => {
           mutex: true,
           listFolded: false,
           listMaxHeight: '250px',
+        });
+        playerRef.current = player;
+
+        // 播放失败（版权受限/链接失效）时自动切到下一首
+        player.on('error', () => {
+          const current = player.list.index;
+          if (current < player.list.audios.length - 1) {
+            player.list.switch(current + 1);
+          } else {
+            player.list.switch(0);
+          }
         });
       } catch (e) {
         console.error('Failed to load playlist:', e);
