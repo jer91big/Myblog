@@ -85,6 +85,71 @@ async function fetchAudio(url: string, cookie: string): Promise<Response | null>
   }
 }
 
+// 诊断端点：查看每步请求在 Vercel 端的实际响应
+export const debugSong = async (req: Request, res: ExpressResponse): Promise<void> => {
+  try {
+    const id = req.query.id as string;
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Missing id' });
+      return;
+    }
+    const cookie = process.env.NETEASE_COOKIE || '';
+    const result: any = { id };
+
+    // 1. outer/url
+    try {
+      const r1 = await fetch(`https://music.163.com/song/media/outer/url?id=${id}.mp3`, {
+        headers: { 'User-Agent': UA, Referer: 'https://music.163.com/', ...(cookie ? { Cookie: cookie } : {}) },
+        signal: AbortSignal.timeout(10000),
+      });
+      result.outerUrl = {
+        status: r1.status,
+        contentType: r1.headers.get('content-type'),
+        contentLength: r1.headers.get('content-length'),
+        firstBytes: (await r1.text()).slice(0, 80),
+      };
+    } catch (e: any) {
+      result.outerUrl = { error: e.message };
+    }
+
+    // 2. enhance/player/url
+    try {
+      const r2 = await fetch(`https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`, {
+        headers: { 'User-Agent': UA, Referer: 'https://music.163.com/', ...(cookie ? { Cookie: cookie } : {}) },
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await r2.json();
+      const song = data?.data?.[0];
+      result.enhanceUrl = { status: r2.status, songUrl: song?.url ? song.url.slice(0, 80) : null, code: song?.code };
+
+      // 3. 尝试访问 CDN 直链
+      if (song?.url) {
+        try {
+          const cdn = song.url.startsWith('http://') ? `https://${song.url.slice(7)}` : song.url;
+          const r3 = await fetch(cdn, {
+            headers: { 'User-Agent': UA, Referer: 'https://music.163.com/', ...(cookie ? { Cookie: cookie } : {}) },
+            signal: AbortSignal.timeout(10000),
+          });
+          result.cdn = {
+            status: r3.status,
+            contentType: r3.headers.get('content-type'),
+            contentLength: r3.headers.get('content-length'),
+          };
+        } catch (e: any) {
+          result.cdn = { error: e.message };
+        }
+      }
+    } catch (e: any) {
+      result.enhanceUrl = { error: e.message };
+    }
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    console.error('Debug song error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 // 音频流代理：浏览器请求本接口，服务端从网易云拉取音频并转发
 // 优先 music.163.com 主域（Vercel 海外可达），CDN 直链兜底
 export const proxySong = async (req: Request, res: ExpressResponse): Promise<void> => {
