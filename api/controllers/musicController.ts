@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
+import { Request, Response as ExpressResponse } from 'express';
 
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 // 获取网易云歌单详情（含歌曲列表）
-export const getPlaylist = async (req: Request, res: Response): Promise<void> => {
+export const getPlaylist = async (req: Request, res: ExpressResponse): Promise<void> => {
   try {
     const id = req.query.id as string;
     if (!id) {
@@ -61,40 +61,33 @@ export const getPlaylist = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-// 获取歌曲真实播放地址（带 Cookie），返回 null 表示不可用
-async function getRealSongUrl(id: string): Promise<string | null> {
-  const cookie = process.env.NETEASE_COOKIE || '';
+// 尝试从一个 URL 拉取音频流，返回 Response 或 null
+async function fetchAudio(url: string, cookie: string): Promise<Response | null> {
+  const headers: Record<string, string> = {
+    'User-Agent': UA,
+    Referer: 'https://music.163.com/',
+    ...(cookie ? { Cookie: cookie } : {}),
+  };
 
   try {
-    const response = await fetch(
-      `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,
-      {
-        headers: {
-          'User-Agent': UA,
-          Referer: 'https://music.163.com/',
-          ...(cookie ? { Cookie: cookie } : {}),
-        },
-      }
-    );
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return null;
 
-    if (response.ok) {
-      const data = await response.json();
-      const song = data?.data?.[0];
-      if (song?.url) {
-        return song.url.startsWith('http://') ? `https://${song.url.slice(7)}` : song.url;
-      }
+    const contentType = response.headers.get('content-type') || '';
+    // 必须是音频，拒绝 HTML 错误页
+    if (!contentType.includes('audio') && !contentType.includes('octet-stream')) {
+      return null;
     }
+    return response;
   } catch (e) {
-    console.error('enhance/player/url failed:', e);
+    console.error(`fetchAudio failed: ${url}`, e);
+    return null;
   }
-
-  // 回退：官方外链（版权受限歌曲会失败）
-  return `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
 }
 
 // 音频流代理：浏览器请求本接口，服务端从网易云拉取音频并转发
-// 解决 JSON 不能直接播放 + 网易云防盗链问题
-export const proxySong = async (req: Request, res: Response): Promise<void> => {
+// 优先 music.163.com 主域（Vercel 海外可达），CDN 直链兜底
+export const proxySong = async (req: Request, res: ExpressResponse): Promise<void> => {
   try {
     const id = req.query.id as string;
     if (!id) {
@@ -102,34 +95,60 @@ export const proxySong = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const url = await getRealSongUrl(id);
-    if (!url) {
+    const cookie = process.env.NETEASE_COOKIE || '';
+
+    let audioRes: Response | null = null;
+
+    // 1. 主域外链（Vercel 可达，部分无版权歌可用）
+    audioRes = await fetchAudio(`https://music.163.com/song/media/outer/url?id=${id}.mp3`, cookie);
+
+    // 2. CDN 直链兜底（enhance/player/url 带 Cookie 获取）
+    if (!audioRes) {
+      try {
+        const urlRes = await fetch(
+          `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,
+          {
+            headers: {
+              'User-Agent': UA,
+              Referer: 'https://music.163.com/',
+              ...(cookie ? { Cookie: cookie } : {}),
+            },
+          }
+        );
+        const data = await urlRes.json();
+        const raw = data?.data?.[0]?.url;
+        if (raw) {
+          const cdnUrl = raw.startsWith('http://') ? `https://${raw.slice(7)}` : raw;
+          audioRes = await fetchAudio(cdnUrl, cookie);
+        }
+      } catch (e) {
+        console.error('enhance/player/url failed:', e);
+      }
+    }
+
+    if (!audioRes) {
       res.status(404).json({ success: false, message: 'Song not available' });
       return;
     }
 
-    const cookie = process.env.NETEASE_COOKIE || '';
-
-    // 转发请求（支持 Range，允许拖动进度条）
-    const headers: Record<string, string> = {
-      'User-Agent': UA,
-      Referer: 'https://music.163.com/',
-      ...(cookie ? { Cookie: cookie } : {}),
-    };
+    // 转发 Range 请求头（支持拖动进度条）
     if (req.headers.range) {
-      headers.Range = req.headers.range as string;
-    }
-
-    const audioRes = await fetch(url, { headers });
-
-    if (!audioRes.ok) {
-      res.status(502).end();
-      return;
+      const headers = audioRes.headers;
+      const rangeRes = await fetch(audioRes.url, {
+        headers: {
+          Range: req.headers.range as string,
+          'User-Agent': UA,
+          Referer: 'https://music.163.com/',
+          ...(cookie ? { Cookie: cookie } : {}),
+        },
+      });
+      if (rangeRes.ok) {
+        audioRes = rangeRes;
+      }
     }
 
     // 转发音频响应头
-    const contentType = audioRes.headers.get('content-type') || 'audio/mpeg';
-    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Type', audioRes.headers.get('content-type') || 'audio/mpeg');
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Cache-Control', 'no-cache');
     if (audioRes.headers.get('content-range')) {
