@@ -32,7 +32,19 @@ export const MusicPlayer = () => {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch(`/api/music/playlist?id=${PLAYLIST_ID}`);
+        // 30 秒超时，避免一直转圈
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 30000);
+        const res = await fetch(`/api/music/playlist?id=${PLAYLIST_ID}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+
+        if (!res.ok) {
+          setError(`歌单加载失败（${res.status}），请稍后重试`);
+          return;
+        }
+
         const data = await res.json();
         if (!data.success || !data.data) {
           setError('歌单加载失败，请稍后重试');

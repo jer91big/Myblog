@@ -35,11 +35,13 @@ export const getPlaylist = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    const toHttps = (u: string) => (u.startsWith('http://') ? `https://${u.slice(7)}` : u);
+
     const tracks = playlist.tracks.slice(0, 50).map((track: any) => ({
       id: track.id,
       name: track.name,
       artist: (track.ar || []).map((a: any) => a.name).join(' / ') || '未知歌手',
-      cover: track.al?.picUrl || '',
+      cover: track.al?.picUrl ? toHttps(track.al.picUrl) : '',
       duration: track.dt,
     }));
 
@@ -48,7 +50,7 @@ export const getPlaylist = async (req: Request, res: Response): Promise<void> =>
       data: {
         id: playlist.id,
         name: playlist.name,
-        cover: playlist.coverImgUrl,
+        cover: playlist.coverImgUrl ? toHttps(playlist.coverImgUrl) : '',
         trackCount: playlist.trackCount,
         tracks,
       },

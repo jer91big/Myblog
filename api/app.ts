@@ -54,6 +54,9 @@ const limiter = rateLimit({
 })
 app.use('/api/', limiter)
 
+// 音乐接口不依赖数据库，放在 DB 中间件之前，避免冷启动等待
+app.use('/api/music', musicRoutes)
+
 // DB 连接中间件：确保每个请求前数据库已连接
 let dbStatus: 'pending' | 'connected' | 'failed' = 'pending'
 let dbPromise: Promise<boolean> | null = null
@@ -85,7 +88,6 @@ app.use('/api/categories', categoryRoutes)
 app.use('/api/tags', tagRoutes)
 app.use('/api/comments', commentRoutes)
 app.use('/api/notes', noteRoutes)
-app.use('/api/music', musicRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/sitemap', sitemapRoutes)
