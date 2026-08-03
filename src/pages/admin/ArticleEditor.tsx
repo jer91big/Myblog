@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Eye, AlertCircle } from 'lucide-react';
+import { Save, Eye, AlertCircle, Image as ImageIcon, Bold, Italic, Heading2, List, Quote, Code } from 'lucide-react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import ImageExtension from '@tiptap/extension-image';
 import { articleApi, categoryApi, tagApi } from '../../api';
 import { Category, Tag } from '../../types';
 
@@ -23,15 +24,85 @@ export const ArticleEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit,
+      ImageExtension.configure({
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'rounded-lg max-w-full',
+        },
+      }),
       Placeholder.configure({
         placeholder: '开始写作...',
       }),
     ],
     content: '',
   });
+
+  // 本地图片压缩转 base64
+  const compressImage = (file: File, maxWidth = 1280): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('请选择图片文件');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('图片不能超过 5MB');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const dataUrl = await compressImage(file);
+      editor?.chain().focus().setImage({ src: dataUrl }).run();
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert('图片上传失败，请重试');
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const insertImageByUrl = () => {
+    const url = prompt('请输入图片 URL：');
+    if (url) {
+      editor?.chain().focus().setImage({ src: url }).run();
+    }
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -191,6 +262,81 @@ export const ArticleEditor = () => {
           </div>
 
           <div className="bg-white rounded-xl shadow-md p-6">
+            {/* 编辑器工具栏 */}
+            <div className="flex items-center gap-1 border-b border-gray-100 pb-3 mb-3 flex-wrap">
+              <button
+                onClick={() => editor?.chain().focus().toggleBold().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('bold') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="加粗"
+              >
+                <Bold className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleItalic().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('italic') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="斜体"
+              >
+                <Italic className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('heading', { level: 2 }) ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="二级标题"
+              >
+                <Heading2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('bulletList') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="无序列表"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('blockquote') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="引用"
+              >
+                <Quote className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('codeBlock') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="代码块"
+              >
+                <Code className="w-4 h-4" />
+              </button>
+              <span className="w-px h-5 bg-gray-200 mx-1" />
+              <button
+                onClick={insertImageByUrl}
+                className="p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600"
+                title="通过 URL 插入图片"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingImage}
+                className="p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 disabled:opacity-50"
+                title="上传本地图片"
+              >
+                {isUploadingImage ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full" />
+                ) : (
+                  <ImageIcon className="w-4 h-4" />
+                )}
+              </button>
+              <span className="text-xs text-gray-400 ml-auto">
+                支持本地图片上传（自动压缩）和 URL 插入
+              </span>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
             <EditorContent editor={editor} className="prose max-w-none" />
           </div>
         </div>
