@@ -60,7 +60,7 @@ export const getPlaylist = async (req: Request, res: Response): Promise<void> =>
 };
 
 // 获取歌曲播放地址
-// 优先尝试真实播放地址接口，失败则回退到官方外链
+// 带 Cookie 请求真实播放地址（可解锁大部分非 VIP 歌曲）
 export const getSongUrl = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.query.id as string;
@@ -69,7 +69,9 @@ export const getSongUrl = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // 尝试获取真实播放地址（免费歌曲可用）
+    const cookie = process.env.NETEASE_COOKIE || '';
+
+    // 尝试获取真实播放地址（带 Cookie）
     try {
       const response = await fetch(
         `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,
@@ -77,6 +79,7 @@ export const getSongUrl = async (req: Request, res: Response): Promise<void> => 
           headers: {
             'User-Agent': UA,
             Referer: 'https://music.163.com/',
+            ...(cookie ? { Cookie: cookie } : {}),
           },
         }
       );
