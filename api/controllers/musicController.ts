@@ -88,7 +88,11 @@ export const getSongUrl = async (req: Request, res: Response): Promise<void> => 
         const data = await response.json();
         const song = data?.data?.[0];
         if (song?.url) {
-          res.json({ success: true, data: { url: song.url } });
+          // 强制 https，避免 HTTPS 站点上混合内容被拦截
+          const url = song.url.startsWith('http://')
+            ? `https://${song.url.slice(7)}`
+            : song.url;
+          res.json({ success: true, data: { url } });
           return;
         }
       }
