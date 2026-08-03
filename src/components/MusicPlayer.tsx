@@ -92,9 +92,15 @@ export const MusicPlayer = () => {
             player.list.switch(0);
           }
         });
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to load playlist:', e);
-        setError('网络错误，歌单加载失败');
+        const msg =
+          e?.name === 'AbortError'
+            ? '请求超时（30秒），请重试'
+            : e instanceof SyntaxError
+            ? '服务器返回了异常响应'
+            : `网络错误：${e?.message || '未知原因'}`;
+        setError(msg);
       } finally {
         setLoading(false);
       }
