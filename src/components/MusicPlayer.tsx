@@ -62,7 +62,8 @@ export const MusicPlayer = () => {
         const audio = tracks.map((track: Track) => ({
           name: track.name,
           artist: track.artist,
-          url: `/api/music/proxy?id=${track.id}`,
+          // 浏览器（国内）直接请求网易云官方外链，能播放无版权歌曲
+          url: `https://music.163.com/song/media/outer/url?id=${track.id}.mp3`,
           cover: track.cover || undefined,
           theme: '#10b981',
         }));
