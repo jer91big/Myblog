@@ -62,7 +62,7 @@ export const MusicPlayer = () => {
         const audio = tracks.map((track: Track) => ({
           name: track.name,
           artist: track.artist,
-          url: `/api/music/song-url?id=${track.id}`,
+          url: `/api/music/proxy?id=${track.id}`,
           cover: track.cover || undefined,
           theme: '#10b981',
         }));

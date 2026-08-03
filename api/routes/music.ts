@@ -1,9 +1,9 @@
 import express from 'express';
-import { getPlaylist, getSongUrl } from '../controllers/musicController.js';
+import { getPlaylist, proxySong } from '../controllers/musicController.js';
 
 const router = express.Router();
 
 router.get('/playlist', getPlaylist);
-router.get('/song-url', getSongUrl);
+router.get('/proxy', proxySong);
 
 export default router;

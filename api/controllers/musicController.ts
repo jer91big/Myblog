@@ -61,55 +61,96 @@ export const getPlaylist = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-// 获取歌曲播放地址
-// 带 Cookie 请求真实播放地址（可解锁大部分非 VIP 歌曲）
-export const getSongUrl = async (req: Request, res: Response): Promise<void> => {
+// 获取歌曲真实播放地址（带 Cookie），返回 null 表示不可用
+async function getRealSongUrl(id: string): Promise<string | null> {
+  const cookie = process.env.NETEASE_COOKIE || '';
+
+  try {
+    const response = await fetch(
+      `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,
+      {
+        headers: {
+          'User-Agent': UA,
+          Referer: 'https://music.163.com/',
+          ...(cookie ? { Cookie: cookie } : {}),
+        },
+      }
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const song = data?.data?.[0];
+      if (song?.url) {
+        return song.url.startsWith('http://') ? `https://${song.url.slice(7)}` : song.url;
+      }
+    }
+  } catch (e) {
+    console.error('enhance/player/url failed:', e);
+  }
+
+  // 回退：官方外链（版权受限歌曲会失败）
+  return `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
+}
+
+// 音频流代理：浏览器请求本接口，服务端从网易云拉取音频并转发
+// 解决 JSON 不能直接播放 + 网易云防盗链问题
+export const proxySong = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.query.id as string;
     if (!id) {
-      res.status(400).json({ success: false, message: 'Missing song id' });
+      res.status(400).end();
+      return;
+    }
+
+    const url = await getRealSongUrl(id);
+    if (!url) {
+      res.status(404).json({ success: false, message: 'Song not available' });
       return;
     }
 
     const cookie = process.env.NETEASE_COOKIE || '';
 
-    // 尝试获取真实播放地址（带 Cookie）
-    try {
-      const response = await fetch(
-        `https://music.163.com/api/song/enhance/player/url?ids=[${id}]&br=320000`,
-        {
-          headers: {
-            'User-Agent': UA,
-            Referer: 'https://music.163.com/',
-            ...(cookie ? { Cookie: cookie } : {}),
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const song = data?.data?.[0];
-        if (song?.url) {
-          // 强制 https，避免 HTTPS 站点上混合内容被拦截
-          const url = song.url.startsWith('http://')
-            ? `https://${song.url.slice(7)}`
-            : song.url;
-          res.json({ success: true, data: { url } });
-          return;
-        }
-      }
-    } catch (e) {
-      console.error('enhance/player/url failed:', e);
+    // 转发请求（支持 Range，允许拖动进度条）
+    const headers: Record<string, string> = {
+      'User-Agent': UA,
+      Referer: 'https://music.163.com/',
+      ...(cookie ? { Cookie: cookie } : {}),
+    };
+    if (req.headers.range) {
+      headers.Range = req.headers.range as string;
     }
 
-    // 回退：官方外链（版权受限歌曲会失败，返回 HTML）
-    const fallback = `https://music.163.com/song/media/outer/url?id=${id}.mp3`;
-    res.json({
-      success: true,
-      data: { url: fallback, restricted: true },
-    });
+    const audioRes = await fetch(url, { headers });
+
+    if (!audioRes.ok) {
+      res.status(502).end();
+      return;
+    }
+
+    // 转发音频响应头
+    const contentType = audioRes.headers.get('content-type') || 'audio/mpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'no-cache');
+    if (audioRes.headers.get('content-range')) {
+      res.setHeader('Content-Range', audioRes.headers.get('content-range')!);
+    }
+    res.status(audioRes.status);
+
+    // 流式转发音频数据
+    const reader = audioRes.body?.getReader();
+    if (!reader) {
+      res.end();
+      return;
+    }
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(value);
+    }
+    res.end();
   } catch (error) {
-    console.error('Get song url error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error('Proxy song error:', error);
+    res.status(500).end();
   }
 };
