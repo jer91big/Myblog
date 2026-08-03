@@ -152,17 +152,18 @@ export const MusicPlayer = () => {
           </div>
 
           <div className="music-aplayer">
-            {loading ? (
+            {/* APlayer 容器始终渲染，避免 ref 变 null */}
+            <div ref={containerRef} />
+            {loading && (
               <div className="music-loading">
                 <div className="music-spinner" />
                 <p>正在加载歌单...</p>
               </div>
-            ) : error ? (
+            )}
+            {error && (
               <div className="music-error">
                 <p>{error}</p>
               </div>
-            ) : (
-              <div ref={containerRef} />
             )}
           </div>
         </div>
