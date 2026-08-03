@@ -4,57 +4,87 @@ import APlayer from 'aplayer';
 import 'aplayer/dist/APlayer.min.css';
 import './MusicPlayer.css';
 
-// 在这里配置你的音乐列表
-const MUSIC_LIST = [
-  {
-    name: '示例歌曲',
-    artist: '未知艺术家',
-    url: 'https://music.163.com/song/media/outer/url?id=1901371647.mp3',
-    cover: '',
-    lrc: '',
-    theme: '#10b981',
-  },
-  // 添加更多歌曲示例：
-  // {
-  //   name: '歌名',
-  //   artist: '歌手',
-  //   url: 'https://example.com/song.mp3',
-  //   cover: 'https://example.com/cover.jpg',
-  // },
-];
+// 网易云歌单 ID
+const PLAYLIST_ID = '17927582985';
+
+interface Track {
+  id: number;
+  name: string;
+  artist: string;
+  cover: string;
+}
 
 export const MusicPlayer = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [playlistName, setPlaylistName] = useState('');
   const panelRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<APlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 初始化 APlayer
+  // 初始化 APlayer（歌单数据到达后）
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;
+    if (playerRef.current) return;
 
-    if (!playerRef.current) {
-      playerRef.current = new APlayer({
-        container: containerRef.current,
-        audio: MUSIC_LIST,
-        mini: false,
-        autoplay: false,
-        theme: '#10b981',
-        loop: 'all',
-        order: 'list',
-        preload: 'auto',
-        volume: 0.7,
-        mutex: true,
-        listFolded: false,
-        listMaxHeight: '250px',
-      });
-    }
+    const init = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await fetch(`/api/music/playlist?id=${PLAYLIST_ID}`);
+        const data = await res.json();
+        if (!data.success || !data.data) {
+          setError('歌单加载失败，请稍后重试');
+          return;
+        }
 
+        const { tracks, name } = data.data;
+        if (tracks.length === 0) {
+          setError('歌单为空');
+          return;
+        }
+
+        setPlaylistName(name);
+
+        const audio = tracks.map((track: Track) => ({
+          name: track.name,
+          artist: track.artist,
+          url: `/api/music/song-url?id=${track.id}`,
+          cover: track.cover || undefined,
+          theme: '#10b981',
+        }));
+
+        playerRef.current = new APlayer({
+          container: containerRef.current,
+          audio,
+          mini: false,
+          autoplay: false,
+          theme: '#10b981',
+          loop: 'all',
+          order: 'list',
+          preload: 'metadata',
+          volume: 0.7,
+          mutex: true,
+          listFolded: false,
+          listMaxHeight: '250px',
+        });
+      } catch (e) {
+        console.error('Failed to load playlist:', e);
+        setError('网络错误，歌单加载失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, [isOpen]);
+
+  useEffect(() => {
     return () => {
-      // 面板关闭时暂停
       playerRef.current?.pause();
     };
-  }, [isOpen]);
+  }, []);
 
   return (
     <>
@@ -86,12 +116,26 @@ export const MusicPlayer = () => {
                   <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                 </svg>
               </div>
-              <div className="heading">🎵 我的音乐</div>
+              <div className="heading">
+                {playlistName ? `🎵 ${playlistName}` : '🎵 我的音乐'}
+              </div>
             </div>
           </div>
 
-          {/* APlayer 容器 */}
-          <div className="music-aplayer" ref={containerRef} />
+          <div className="music-aplayer">
+            {loading ? (
+              <div className="music-loading">
+                <div className="music-spinner" />
+                <p>正在加载歌单...</p>
+              </div>
+            ) : error ? (
+              <div className="music-error">
+                <p>{error}</p>
+              </div>
+            ) : (
+              <div ref={containerRef} />
+            )}
+          </div>
         </div>
       )}
     </>
