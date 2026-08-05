@@ -44,10 +44,10 @@ export const getPlaylist = async (req: Request, res: ExpressResponse): Promise<v
 
     if (trackIds.length > fullTracks.length) {
       try {
-        // 批量查询歌曲详情（一次最多 1000 首）
-        const idsStr = trackIds.slice(0, 500).join(',');
+        // 批量查询歌曲详情（c 参数格式：[{"id":xxx}]）
+        const c = JSON.stringify(trackIds.slice(0, 500).map((id) => ({ id })));
         const detailRes = await fetch(
-          `https://music.163.com/api/v3/song/detail?ids=[${idsStr}]`,
+          `https://music.163.com/api/v3/song/detail?c=${encodeURIComponent(c)}`,
           {
             headers: {
               'User-Agent': UA,
