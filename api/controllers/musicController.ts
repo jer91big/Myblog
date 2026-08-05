@@ -37,7 +37,35 @@ export const getPlaylist = async (req: Request, res: ExpressResponse): Promise<v
 
     const toHttps = (u: string) => (u.startsWith('http://') ? `https://${u.slice(7)}` : u);
 
-    const tracks = playlist.tracks.slice(0, 50).map((track: any) => ({
+    // playlist.tracks 接口只返回前 10 首，用 trackIds 批量查询完整歌曲列表
+    let fullTracks = playlist.tracks || [];
+    const trackIds: number[] = (playlist.trackIds || []).map((t: any) => t.id);
+
+    if (trackIds.length > fullTracks.length) {
+      try {
+        // 批量查询歌曲详情（一次最多 1000 首）
+        const idsStr = trackIds.slice(0, 500).join(',');
+        const detailRes = await fetch(
+          `https://music.163.com/api/v3/song/detail?ids=[${idsStr}]`,
+          {
+            headers: {
+              'User-Agent': UA,
+              Referer: 'https://music.163.com/',
+            },
+          }
+        );
+        if (detailRes.ok) {
+          const detailData = await detailRes.json();
+          if (detailData?.songs?.length) {
+            fullTracks = detailData.songs;
+          }
+        }
+      } catch (e) {
+        console.error('Get full playlist detail failed:', e);
+      }
+    }
+
+    const tracks = fullTracks.slice(0, 100).map((track: any) => ({
       id: track.id,
       name: track.name,
       artist: (track.ar || []).map((a: any) => a.name).join(' / ') || '未知歌手',
@@ -51,7 +79,7 @@ export const getPlaylist = async (req: Request, res: ExpressResponse): Promise<v
         id: playlist.id,
         name: playlist.name,
         cover: playlist.coverImgUrl ? toHttps(playlist.coverImgUrl) : '',
-        trackCount: playlist.trackCount,
+        trackCount: trackIds.length || playlist.trackCount,
         tracks,
       },
     });
