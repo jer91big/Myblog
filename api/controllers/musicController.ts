@@ -40,6 +40,7 @@ export const getPlaylist = async (req: Request, res: ExpressResponse): Promise<v
     // playlist.tracks 接口只返回前 10 首，用 trackIds 批量查询完整歌曲列表
     let fullTracks = playlist.tracks || [];
     const trackIds: number[] = (playlist.trackIds || []).map((t: any) => t.id);
+    console.log(`[music] playlist ${playlist.id}: trackIds=${trackIds.length}, initialTracks=${fullTracks.length}`);
 
     if (trackIds.length > fullTracks.length) {
       try {
@@ -56,14 +57,18 @@ export const getPlaylist = async (req: Request, res: ExpressResponse): Promise<v
         );
         if (detailRes.ok) {
           const detailData = await detailRes.json();
+          console.log(`[music] song/detail: status=${detailRes.status}, songs=${detailData?.songs?.length || 0}`);
           if (detailData?.songs?.length) {
             fullTracks = detailData.songs;
           }
+        } else {
+          console.log(`[music] song/detail failed: status=${detailRes.status}`);
         }
       } catch (e) {
         console.error('Get full playlist detail failed:', e);
       }
     }
+    console.log(`[music] final tracks: ${fullTracks.length}`);
 
     const tracks = fullTracks.slice(0, 100).map((track: any) => ({
       id: track.id,
