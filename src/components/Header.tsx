@@ -97,15 +97,13 @@ export const Header = () => {
 
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                {user?.role === 'admin' && (
-                  <Link
-                    to="/admin/articles/new"
-                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <PenLine className="w-4 h-4" />
-                    <span>写文章</span>
-                  </Link>
-                )}
+                <Link
+                  to="/admin/articles/new"
+                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <PenLine className="w-4 h-4" />
+                  <span>写文章</span>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
@@ -222,16 +220,14 @@ export const Header = () => {
                     管理后台
                   </Link>
                 )}
-                {user?.role === 'admin' && (
-                  <Link
-                    to="/admin/articles/new"
-                    className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <PenLine className="w-4 h-4" />
-                    写文章
-                  </Link>
-                )}
+                <Link
+                  to="/admin/articles/new"
+                  className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <PenLine className="w-4 h-4" />
+                  写文章
+                </Link>
                 <Link
                   to="/profile"
                   className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2"

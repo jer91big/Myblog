@@ -37,6 +37,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  // 普通用户进入编辑页时，不显示后台管理侧边栏（管理界面仅管理员可见）
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -45,6 +47,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {isAdmin && (
       <aside
         className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-50 ${
           isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
@@ -91,14 +94,16 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           </div>
         </div>
       </aside>
+      )}
 
       <div
         className={`transition-all duration-300 ${
-          isSidebarOpen ? 'ml-64' : 'ml-0'
+          isAdmin && isSidebarOpen ? 'ml-64' : 'ml-0'
         }`}
       >
         <header className="bg-white shadow-sm sticky top-0 z-40">
           <div className="flex items-center justify-between px-6 py-4">
+            {isAdmin ? (
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -109,6 +114,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 <Menu className="w-6 h-6 text-gray-600" />
               )}
             </button>
+            ) : (
+            <span className="font-display text-xl font-bold text-gray-900">创作中心</span>
+            )}
 
             <div className="flex items-center gap-4">
               <Link

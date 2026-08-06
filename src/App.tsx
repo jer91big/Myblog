@@ -203,21 +203,21 @@ export default function App() {
         <Route
           path="/admin/articles/new"
           element={
-            <AdminProtected>
+            <AuthProtected>
               <AdminLayout>
                 <ArticleEditor />
               </AdminLayout>
-            </AdminProtected>
+            </AuthProtected>
           }
         />
         <Route
           path="/admin/articles/:id/edit"
           element={
-            <AdminProtected>
+            <AuthProtected>
               <AdminLayout>
                 <ArticleEditor />
               </AdminLayout>
-            </AdminProtected>
+            </AuthProtected>
           }
         />
         <Route
@@ -233,21 +233,21 @@ export default function App() {
         <Route
           path="/admin/notes/new"
           element={
-            <AdminProtected>
+            <AuthProtected>
               <AdminLayout>
                 <NoteEditor />
               </AdminLayout>
-            </AdminProtected>
+            </AuthProtected>
           }
         />
         <Route
           path="/admin/notes/:id/edit"
           element={
-            <AdminProtected>
+            <AuthProtected>
               <AdminLayout>
                 <NoteEditor />
               </AdminLayout>
-            </AdminProtected>
+            </AuthProtected>
           }
         />
         <Route
