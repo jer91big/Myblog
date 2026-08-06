@@ -28,7 +28,7 @@
   color: white;
 }
 
-/* 弹出面板 */
+/* 弹出面板（常驻渲染，默认隐藏；打开时显示，关闭时仅隐藏，音乐继续播放） */
 .music-panel {
   position: fixed;
   bottom: 5rem;
@@ -40,18 +40,24 @@
   border-radius: 16px;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
   overflow: hidden;
-  animation: slideUp 0.3s ease-out;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+  pointer-events: none;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    visibility 0s linear 0.3s;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.music-panel-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .music-panel-header {

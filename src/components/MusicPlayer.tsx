@@ -23,19 +23,11 @@ export const MusicPlayer = () => {
   const playerRef = useRef<APlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 初始化 APlayer（歌单数据到达后）
+  // 打开面板且播放器未初始化时，加载歌单并创建播放器实例
+  // （关闭面板只隐藏 UI，不销毁实例，音乐继续播放）
   useEffect(() => {
-    // 关闭时销毁播放器实例，下次打开重新初始化
-    if (!isOpen) {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-      return;
-    }
-
+    if (!isOpen || playerRef.current) return;
     if (!containerRef.current) return;
-    if (playerRef.current) return;
 
     const init = async () => {
       setLoading(true);
@@ -145,39 +137,41 @@ export const MusicPlayer = () => {
         )}
       </button>
 
-      {/* 弹出面板 */}
-      {isOpen && (
-        <div className="music-panel" ref={panelRef}>
-          <div className="music-panel-header">
-            <div className="currentplaying">
-              <div className="spotify">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-green-500">
-                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                </svg>
-              </div>
-              <div className="heading">
-                {playlistName ? `🎵 ${playlistName}` : '🎵 我的音乐'}
-              </div>
+      {/* 弹出面板（常驻渲染，关闭时仅隐藏，音乐继续播放） */}
+      <div
+        className={`music-panel ${isOpen ? 'music-panel-open' : ''}`}
+        ref={panelRef}
+        aria-hidden={!isOpen}
+      >
+        <div className="music-panel-header">
+          <div className="currentplaying">
+            <div className="spotify">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full text-green-500">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+              </svg>
+            </div>
+            <div className="heading">
+              {playlistName ? `🎵 ${playlistName}` : '🎵 我的音乐'}
             </div>
           </div>
-
-          <div className="music-aplayer">
-            {/* APlayer 容器始终渲染，避免 ref 变 null */}
-            <div ref={containerRef} />
-            {loading && (
-              <div className="music-loading">
-                <div className="music-spinner" />
-                <p>正在加载歌单...</p>
-              </div>
-            )}
-            {error && (
-              <div className="music-error">
-                <p>{error}</p>
-              </div>
-            )}
-          </div>
         </div>
-      )}
+
+        <div className="music-aplayer">
+          {/* APlayer 容器始终渲染，避免 ref 变 null */}
+          <div ref={containerRef} />
+          {loading && (
+            <div className="music-loading">
+              <div className="music-spinner" />
+              <p>正在加载歌单...</p>
+            </div>
+          )}
+          {error && (
+            <div className="music-error">
+              <p>{error}</p>
+            </div>
+          )}
+        </div>
+      </div>
     </>
   );
 };
