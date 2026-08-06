@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Calendar, Edit2, Save, X, BookOpen, MessageCircle, Award, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Calendar, Edit2, Save, X, BookOpen, MessageCircle, Award, Camera, Trash2, FileText } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { userApi, articleApi, noteApi } from '../api';
+import { userApi, articleApi, noteApi, commentApi } from '../api';
 import { User as UserType, Article as ArticleType, Note as NoteType } from '../types';
+
+// 我的评论（含对应文章信息）
+interface MyComment {
+  id: string;
+  content: string;
+  article: { _id: string; title: string } | null;
+  createdAt: string;
+}
 
 // 压缩图片并转为 base64
 const compressImage = (file: File, maxWidth = 200, maxHeight = 200): Promise<string> => {
@@ -44,6 +52,7 @@ export const Profile = () => {
   });
   const [myArticles, setMyArticles] = useState<ArticleType[]>([]);
   const [myNotes, setMyNotes] = useState<NoteType[]>([]);
+  const [myComments, setMyComments] = useState<MyComment[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -56,6 +65,7 @@ export const Profile = () => {
     fetchProfile();
     fetchMyArticles();
     fetchMyNotes();
+    fetchMyComments();
   }, [isAuthenticated, navigate, user?.id]);
 
   const fetchProfile = async () => {
@@ -112,6 +122,17 @@ export const Profile = () => {
     }
   };
 
+  const fetchMyComments = async () => {
+    try {
+      const response = await userApi.getUserComments(user!.id);
+      if (response.success && response.data) {
+        setMyComments(response.data.comments);
+      }
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
+    }
+  };
+
   const handleDeleteNote = async (id: string) => {
     if (!confirm('确定要删除这篇笔记吗？删除后无法恢复。')) return;
     try {
@@ -123,6 +144,22 @@ export const Profile = () => {
       }
     } catch (error) {
       console.error('Failed to delete note:', error);
+      alert('删除失败，请重试');
+    }
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    if (!confirm('确定要删除这条评论吗？删除后无法恢复。')) return;
+    try {
+      const response = await commentApi.deleteComment(id);
+      if (response.success) {
+        fetchMyComments();
+        fetchProfile();
+      } else {
+        alert(response.message || '删除失败');
+      }
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
       alert('删除失败，请重试');
     }
   };
@@ -315,7 +352,7 @@ export const Profile = () => {
               </div>
             </div>
 
-            <div className="border-t grid grid-cols-3 divide-x">
+            <div className="border-t grid grid-cols-4 divide-x">
               <div className="p-6 text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <BookOpen className="w-5 h-5 text-primary-600" />
@@ -329,6 +366,13 @@ export const Profile = () => {
                   <span className="text-2xl font-bold text-gray-900">{profile.commentCount ?? 0}</span>
                 </div>
                 <p className="text-sm text-gray-500">评论数</p>
+              </div>
+              <div className="p-6 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <FileText className="w-5 h-5 text-purple-500" />
+                  <span className="text-2xl font-bold text-gray-900">{profile.noteCount ?? 0}</span>
+                </div>
+                <p className="text-sm text-gray-500">笔记数</p>
               </div>
               <div className="p-6 text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
@@ -474,6 +518,53 @@ export const Profile = () => {
                 >
                   写笔记
                 </Link>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 bg-white rounded-xl shadow-md p-6">
+            <h2 className="font-display text-xl font-bold mb-4">我的评论</h2>
+            {myComments.length > 0 ? (
+              <div className="space-y-4">
+                {myComments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="group p-4 border border-gray-100 rounded-lg hover:border-accent-200 hover:bg-accent-50/50 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-800 break-words">{comment.content}</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          {comment.article ? (
+                            <Link
+                              to={`/articles/${comment.article._id}`}
+                              className="text-xs text-accent-500 hover:underline truncate"
+                            >
+                              评论于《{comment.article.title}》
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-gray-400">评论的文章已删除</span>
+                          )}
+                          <span className="text-xs text-gray-400">
+                            {new Date(comment.createdAt).toLocaleDateString('zh-CN')}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="删除"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <MessageCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>暂无评论，去文章下面留言吧！</p>
               </div>
             )}
           </div>

@@ -88,6 +88,7 @@ export const getUserById = async (
 
     const articleCount = await Article.countDocuments({ authorId: id });
     const commentCount = await Comment.countDocuments({ authorId: id });
+    const noteCount = await Note.countDocuments({ authorId: id });
 
     res.json({
       success: true,
@@ -100,6 +101,7 @@ export const getUserById = async (
         role: user.role,
         articleCount,
         commentCount,
+        noteCount,
         createdAt: user.createdAt,
       },
     });
@@ -330,6 +332,61 @@ export const getUserNotes = async (
     });
   } catch (error) {
     console.error('Get user notes error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getUserComments = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const { id } = req.params;
+
+    if (id !== req.user.id && req.user.role !== 'admin') {
+      res.status(403).json({ success: false, message: 'Forbidden' });
+      return;
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const comments = await Comment.find({ authorId: id })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .populate('articleId', 'title');
+
+    const total = await Comment.countDocuments({ authorId: id });
+
+    res.json({
+      success: true,
+      data: {
+        comments: comments.map((comment) => ({
+          id: comment._id.toString(),
+          content: comment.content,
+          article: comment.articleId as any,
+          createdAt: comment.createdAt,
+        })),
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get user comments error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

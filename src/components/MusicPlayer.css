@@ -83,6 +83,28 @@
   align-self: center;
 }
 
+/* 歌单名下的版权提醒小字 */
+.music-playlist-tip {
+  margin: 0 1em 0.75em;
+  font-size: 0.72em;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.music-playlist-tip a {
+  color: #10b981;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.music-playlist-tip a:hover {
+  text-decoration: none;
+}
+
+.dark .music-playlist-tip {
+  color: #64748b;
+}
+
 /* 加载 / 错误状态 */
 .music-aplayer {
   position: relative;
@@ -180,82 +202,6 @@
   color: #94a3b8;
 }
 
-/* 均衡器动画 */
-.music-equalizer {
-  display: flex;
-  justify-content: center;
-  padding: 0.8em 1em 1em;
-}
-
-.equalizer-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 30px;
-}
-
-.bar {
-  display: block;
-  width: 3px;
-  background-color: #10b981;
-  border-radius: 3px;
-  animation: equalize 1.2s infinite ease-in-out;
-}
-
-.bar1 { height: 12px; animation-delay: 0s; }
-.bar2 { height: 20px; animation-delay: 0.15s; }
-.bar3 { height: 8px;  animation-delay: 0.3s; }
-.bar4 { height: 24px; animation-delay: 0.45s; }
-.bar5 { height: 16px; animation-delay: 0.6s; }
-
-@keyframes equalize {
-  0%, 100% { height: 8px; }
-  50% { height: 24px; }
-}
-
-/* 悬浮按钮内 loader 动画 */
-.loader {
-  display: flex;
-  flex-direction: row;
-  height: 28px;
-  padding: 0 6px;
-  transform: rotate(180deg);
-  justify-content: right;
-  border-radius: 6px;
-  align-items: center;
-  gap: 2px;
-}
-
-.load {
-  width: 3px;
-  height: 24px;
-  background-color: #10b981;
-  animation: move6 1s infinite ease-in-out;
-  border-radius: 3px;
-}
-
-.load:nth-child(1) { animation-delay: 0.2s; }
-.load:nth-child(2) { animation-delay: 0.4s; }
-.load:nth-child(3) { animation-delay: 0.6s; }
-
-@keyframes move6 {
-  0% { height: 5px; }
-  25% { height: 14px; }
-  50% { height: 24px; }
-  100% { height: 5px; }
-}
-
-.play {
-  position: relative;
-  height: 14px;
-  width: 14px;
-  clip-path: polygon(50% 50%, 100% 50%, 75% 6.6%);
-  background-color: #333;
-  transform: rotate(-90deg);
-  align-self: center;
-  margin-left: 2px;
-}
-
 /* 暗色模式 */
 .dark .music-fab {
   background-color: #1e293b;
@@ -269,8 +215,4 @@
 
 .dark .heading {
   color: #e2e8f0;
-}
-
-.dark .play {
-  background-color: #e2e8f0;
 }

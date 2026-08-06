@@ -420,6 +420,14 @@ export const userApi = {
     });
     return response.json();
   },
+
+  getUserComments: async (id: string, page?: number, limit?: number): Promise<ApiResponse<{ comments: { id: string; content: string; article: { _id: string; title: string } | null; createdAt: string }[]; pagination: any }>> => {
+    const response = await authFetch(buildUrl(`/users/${id}/comments`, { page, limit }), {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
 };
 
 export const noteApi = {

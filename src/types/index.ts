@@ -8,6 +8,7 @@ export interface User {
   createdAt: string;
   articleCount?: number;
   commentCount?: number;
+  noteCount?: number;
 }
 
 export interface Category {

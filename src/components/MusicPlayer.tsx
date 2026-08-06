@@ -128,12 +128,14 @@ export const MusicPlayer = () => {
         {isOpen ? (
           <X className="w-5 h-5" />
         ) : (
-          <div className="loader">
-            <div className="load" />
-            <div className="load" />
-            <div className="load" />
-            <div className="play" />
-          </div>
+          /* 网易云音乐 logo */
+          <svg viewBox="0 0 32 32" className="w-7 h-7" aria-hidden="true">
+            <circle cx="16" cy="16" r="16" fill="#C20C0C" />
+            <path
+              fill="#fff"
+              d="M21.4 6.4c-1.8 0-3.4.7-4.5 2-1.1 1.3-1.7 2.8-1.7 4.5v7.2c0 .6-.2 1.3-.7 1.8-.6.6-1.3.9-2 .9-1.6 0-2.8-1.3-2.8-2.8 0-1.6 1.3-2.8 2.8-2.8.3 0 .7.1 1 .2v-4.7c-.9-.3-1.7-.5-2.6-.5-2.8 0-5 2.2-5 5s2.2 5 5 5c1.5 0 2.8-.6 3.7-1.7.9-1 1.4-2.3 1.4-3.6v-7.2c0-1 .4-1.9 1.2-2.6.8-.8 1.8-1.2 2.8-1.2h.3V6.4h-.4z"
+            />
+          </svg>
         )}
       </button>
 
@@ -154,6 +156,17 @@ export const MusicPlayer = () => {
               {playlistName ? `🎵 ${playlistName}` : '🎵 我的音乐'}
             </div>
           </div>
+          <p className="music-playlist-tip">
+            由于版权原因部分歌曲无法播放，请到
+            <a
+              href="https://music.163.com/#/playlist?id=17927582985"
+              target="_blank"
+              rel="noreferrer"
+            >
+              歌单
+            </a>
+            收听
+          </p>
         </div>
 
         <div className="music-aplayer">
