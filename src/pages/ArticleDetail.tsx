@@ -37,7 +37,8 @@ export const ArticleDetail = () => {
 
   const fetchComments = async () => {
     try {
-      const response = await commentApi.getComments(id!, true);
+      // 自由发言：不过滤审核状态，所有评论直接展示
+      const response = await commentApi.getComments(id!);
       if (response.success && response.data) {
         setComments(response.data.comments);
       }

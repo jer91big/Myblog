@@ -118,7 +118,8 @@ export const createComment = async (
       authorId: req.user.id,
       content,
       parentId: parentId || null,
-      approved: req.user.role === 'admin',
+      // 自由发言：评论发布即通过，无需审核
+      approved: true,
     });
 
     await comment.save();
