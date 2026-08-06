@@ -25,7 +25,16 @@ export const MusicPlayer = () => {
 
   // 初始化 APlayer（歌单数据到达后）
   useEffect(() => {
-    if (!isOpen || !containerRef.current) return;
+    // 关闭时销毁播放器实例，下次打开重新初始化
+    if (!isOpen) {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+      return;
+    }
+
+    if (!containerRef.current) return;
     if (playerRef.current) return;
 
     const init = async () => {
