@@ -99,20 +99,13 @@ export const Header = () => {
               <div className="flex items-center gap-2">
                 {user?.role === 'admin' && (
                   <Link
-                    to="/admin"
+                    to="/admin/articles/new"
                     className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span>管理</span>
+                    <PenLine className="w-4 h-4" />
+                    <span>写文章</span>
                   </Link>
                 )}
-                <Link
-                  to="/admin/articles/new"
-                  className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <PenLine className="w-4 h-4" />
-                  <span>写文章</span>
-                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
@@ -120,6 +113,17 @@ export const Header = () => {
                   <LogOut className="w-4 h-4" />
                   <span>退出</span>
                 </button>
+                {/* 后台管理按钮，并排放在头像旁边（仅管理员可见） */}
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+                    title="后台管理"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>后台管理</span>
+                  </Link>
+                )}
                 <Link to="/profile">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-medium">
                     {user?.username.charAt(0).toUpperCase()}
@@ -218,14 +222,16 @@ export const Header = () => {
                     管理后台
                   </Link>
                 )}
-                <Link
-                  to="/admin/articles/new"
-                  className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <PenLine className="w-4 h-4" />
-                  写文章
-                </Link>
+                {user?.role === 'admin' && (
+                  <Link
+                    to="/admin/articles/new"
+                    className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <PenLine className="w-4 h-4" />
+                    写文章
+                  </Link>
+                )}
                 <Link
                   to="/profile"
                   className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2"

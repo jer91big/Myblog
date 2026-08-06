@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import ClickSpark from '@/components/ClickSpark';
@@ -54,6 +54,46 @@ const AuthProtected = ({ children }: { children: React.ReactNode }) => {
 
   if (!isAuthenticated) {
     return <Login />;
+  }
+
+  return <>{children}</>;
+};
+
+// 管理员专属路由：非管理员显示无权限提示
+const AdminProtected = ({ children }: { children: React.ReactNode }) => {
+  const { user, isAuthenticated, fetchCurrentUser, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-accent-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="font-display text-2xl font-bold text-gray-900 mb-2">无权访问</p>
+          <p className="text-gray-500 mb-6">后台管理界面仅管理员可用</p>
+          <Link
+            to="/"
+            className="inline-block px-6 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
+          >
+            返回首页
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
@@ -143,121 +183,121 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <AdminDashboard />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/articles"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <ArticleManagement />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/articles/new"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <ArticleEditor />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/articles/:id/edit"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <ArticleEditor />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/notes"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <NoteManagement />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/notes/new"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <NoteEditor />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/notes/:id/edit"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <NoteEditor />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/categories"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <CategoryManagement />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/tags"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <TagManagement />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/comments"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <CommentManagement />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/users"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <UserManagement />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
         <Route
           path="/admin/settings"
           element={
-            <AuthProtected>
+            <AdminProtected>
               <AdminLayout>
                 <SystemSettings />
               </AdminLayout>
-            </AuthProtected>
+            </AdminProtected>
           }
         />
       </Routes>
