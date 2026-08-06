@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, User, ArrowLeft, Tag } from 'lucide-react';
+import { Calendar, User, ArrowLeft, Tag, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { noteApi } from '../api';
@@ -28,6 +28,22 @@ export const NoteDetail = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 下载笔记为 .md 文件（内容为 Markdown 原文）
+  const handleDownload = () => {
+    if (!note) return;
+    // 清理 Windows 文件名非法字符
+    const safeTitle = note.title.replace(/[\\/:*?"<>|]/g, '_');
+    const blob = new Blob([note.content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${safeTitle}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -100,6 +116,13 @@ export const NoteDetail = () => {
                     {note.author.username}
                   </span>
                 )}
+                <button
+                  onClick={handleDownload}
+                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-accent-500 border border-accent-500 hover:text-white hover:bg-accent-500 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  下载 .md
+                </button>
               </div>
 
               <div className="article-content">
