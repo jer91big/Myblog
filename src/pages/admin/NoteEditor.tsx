@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Eye, AlertCircle } from 'lucide-react';
+import { Save, Eye, AlertCircle, Upload } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { noteApi } from '../../api';
@@ -15,6 +15,32 @@ export const NoteEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 上传本地 .md 文件，内容填入编辑器（标题为空时用文件名）
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.md')) {
+      setSaveError('请选择 .md 格式的文件');
+      e.target.value = '';
+      return;
+    }
+    try {
+      const text = await file.text();
+      setContent(text);
+      if (!title.trim()) {
+        setTitle(file.name.replace(/\.md$/i, ''));
+      }
+      setSaveError('');
+    } catch (err) {
+      console.error('Failed to read file:', err);
+      setSaveError('读取文件失败，请重试');
+    } finally {
+      // 重置 input，允许重复选择同一文件
+      e.target.value = '';
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -96,6 +122,20 @@ export const NoteEditor = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            上传 .md
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".md,text/markdown"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
           <button
             onClick={() => setShowPreview(!showPreview)}
             className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
