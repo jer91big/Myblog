@@ -23,6 +23,25 @@
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
 }
 
+/* 网易云 logo：播放时像唱片一样旋转，暂停时停在原地 */
+.music-logo {
+  display: block;
+  animation: musicLogoSpin 3s linear infinite;
+}
+
+.music-logo-paused {
+  animation-play-state: paused;
+}
+
+@keyframes musicLogoSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .music-fab-active {
   background-color: #10b981;
   color: white;

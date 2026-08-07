@@ -19,6 +19,7 @@ export const MusicPlayer = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [playlistName, setPlaylistName] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<APlayer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,6 +86,11 @@ export const MusicPlayer = () => {
         });
         playerRef.current = player;
 
+        // 同步播放状态（用于悬浮按钮旋转动画）
+        setIsPlaying(!player.audio.paused);
+        player.on('play', () => setIsPlaying(true));
+        player.on('pause', () => setIsPlaying(false));
+
         // 播放失败（版权受限/链接失效）时自动切到下一首
         player.on('error', () => {
           const current = player.list.index;
@@ -128,8 +134,12 @@ export const MusicPlayer = () => {
         {isOpen ? (
           <X className="w-5 h-5" />
         ) : (
-          /* 网易云音乐 logo */
-          <svg viewBox="0 0 32 32" className="w-7 h-7" aria-hidden="true">
+          /* 网易云音乐 logo（播放时旋转，暂停时停住） */
+          <svg
+            viewBox="0 0 32 32"
+            className={`music-logo w-7 h-7 ${isPlaying ? '' : 'music-logo-paused'}`}
+            aria-hidden="true"
+          >
             <circle cx="16" cy="16" r="16" fill="#C20C0C" />
             <path
               fill="#fff"
