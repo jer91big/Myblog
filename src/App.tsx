@@ -100,6 +100,15 @@ const AdminProtected = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
+  const { isAuthenticated, fetchCurrentUser } = useAuthStore();
+
+  // 页面加载时：如果本地存有 token，自动恢复登录状态（刷新/重开网站不再显示未登录）
+  useEffect(() => {
+    if (localStorage.getItem('accessToken') && !isAuthenticated) {
+      fetchCurrentUser();
+    }
+  }, [fetchCurrentUser, isAuthenticated]);
+
   return (
     <Router>
       <MusicPlayer />
