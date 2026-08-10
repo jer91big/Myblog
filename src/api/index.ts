@@ -430,6 +430,16 @@ export const userApi = {
   },
 };
 
+export const analyticsApi = {
+  getTodayVisitors: async (): Promise<ApiResponse<{ today: number; trend: { date: string; count: number }[] }>> => {
+    const response = await authFetch(`${API_BASE_URL}/analytics/visitors`, {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+};
+
 export const noteApi = {
   getNotes: async (params?: {
     page?: number;

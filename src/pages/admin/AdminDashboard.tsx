@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { FileText, MessageSquare, Users, TrendingUp, ArrowUp, ArrowDown } from 'lucide-react';
-import { articleApi, commentApi, userApi } from '../../api';
+import { FileText, MessageSquare, Users, TrendingUp, ArrowUp, ArrowDown, Eye } from 'lucide-react';
+import { articleApi, commentApi, userApi, analyticsApi } from '../../api';
 import { Comment } from '../../types';
 
 export const AdminDashboard = () => {
@@ -9,6 +9,7 @@ export const AdminDashboard = () => {
     totalComments: 0,
     totalUsers: 0,
     pendingComments: 0,
+    todayVisitors: 0,
   });
   const [pendingCommentList, setPendingCommentList] = useState<Comment[]>([]);
 
@@ -18,11 +19,12 @@ export const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const [articlesRes, pendingRes, usersRes, allCommentsRes] = await Promise.all([
+      const [articlesRes, pendingRes, usersRes, allCommentsRes, visitorsRes] = await Promise.all([
         articleApi.getArticles({ limit: 1 }),
         commentApi.getPendingComments(),
         userApi.getUsers(1, 1),
         commentApi.getComments(''),
+        analyticsApi.getTodayVisitors(),
       ]);
 
       if (articlesRes.success && articlesRes.data) {
@@ -43,6 +45,9 @@ export const AdminDashboard = () => {
           ...prev,
           totalComments: allCommentsRes.data.pagination.total,
         }));
+      }
+      if (visitorsRes.success && visitorsRes.data) {
+        setStats((prev) => ({ ...prev, todayVisitors: visitorsRes.data.today }));
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -72,6 +77,13 @@ export const AdminDashboard = () => {
       trend: { value: 5, up: true },
     },
     {
+      icon: Eye,
+      label: '今日上线人数',
+      value: stats.todayVisitors,
+      color: 'bg-green-500',
+      trend: { value: 0, up: true },
+    },
+    {
       icon: TrendingUp,
       label: '待审核评论',
       value: stats.pendingComments,
@@ -87,7 +99,7 @@ export const AdminDashboard = () => {
         <p className="text-gray-500 mt-1">欢迎回来！这是您的博客数据概览</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {statCards.map((card) => (
           <div
             key={card.label}

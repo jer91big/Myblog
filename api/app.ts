@@ -23,7 +23,9 @@ import musicRoutes from './routes/music.js'
 import searchRoutes from './routes/search.js'
 import userRoutes from './routes/users.js'
 import sitemapRoutes from './routes/sitemap.js'
+import analyticsRoutes from './routes/analytics.js'
 import { connectDB } from './config/database.js'
+import { trackVisit } from './middleware/visitTracker.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -82,6 +84,9 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
   next()
 })
 
+// 访问统计：记录每个 API 请求的 IP（今日上线人数用）
+app.use('/api/', trackVisit)
+
 app.use('/api/auth', authRoutes)
 app.use('/api/articles', articleRoutes)
 app.use('/api/categories', categoryRoutes)
@@ -91,6 +96,7 @@ app.use('/api/notes', noteRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/sitemap', sitemapRoutes)
+app.use('/api/analytics', analyticsRoutes)
 
 app.use(
   '/api/health',
