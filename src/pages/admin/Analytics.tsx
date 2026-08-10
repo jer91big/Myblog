@@ -14,8 +14,16 @@ interface TrendPoint {
   count: number;
 }
 
-// 近 7 天流量折线图（轻量 SVG，无第三方依赖）
-const VisitorChart = ({ data }: { data: TrendPoint[] }) => {
+// 近 7 天流量折线图（轻量 SVG，无第三方依赖；点击数据点查看当天访客）
+const VisitorChart = ({
+  data,
+  selectedIndex,
+  onPointClick,
+}: {
+  data: TrendPoint[];
+  selectedIndex: number | null;
+  onPointClick: (index: number) => void;
+}) => {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const W = 640;
   const H = 240;
@@ -83,16 +91,32 @@ const VisitorChart = ({ data }: { data: TrendPoint[] }) => {
         <path d={areaPath} fill="url(#areaGrad)" />
         <path d={linePath} fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
 
-        {/* 数据点 + 数值 */}
+        {/* 数据点 + 数值（点击查看当天访客） */}
         {data.map((d, i) => (
           <g key={d.date}>
-            <circle cx={x(i)} cy={y(d.count)} r={hoverIndex === i ? 6 : 4} fill="#f97316" stroke="#fff" strokeWidth="2" />
-            {hoverIndex === i && (
+            <circle
+              cx={x(i)}
+              cy={y(d.count)}
+              r={selectedIndex === i ? 7 : hoverIndex === i ? 6 : 4}
+              fill={selectedIndex === i ? '#ea580c' : '#f97316'}
+              stroke="#fff"
+              strokeWidth="2"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onPointClick(i)}
+            />
+            {(hoverIndex === i || selectedIndex === i) && (
               <text x={x(i)} y={y(d.count) - 12} textAnchor="middle" fontSize="12" fontWeight="bold" fill="#f97316">
                 {d.count}
               </text>
             )}
-            <text x={x(i)} y={H - 10} textAnchor="middle" fontSize="11" fill={hoverIndex === i ? '#f97316' : '#9ca3af'} fontWeight={hoverIndex === i ? 700 : 400}>
+            <text
+              x={x(i)}
+              y={H - 10}
+              textAnchor="middle"
+              fontSize="11"
+              fill={selectedIndex === i ? '#ea580c' : hoverIndex === i ? '#f97316' : '#9ca3af'}
+              fontWeight={selectedIndex === i || hoverIndex === i ? 700 : 400}
+            >
               {shortDate(d.date)}
             </text>
           </g>
@@ -120,15 +144,16 @@ const VisitorChart = ({ data }: { data: TrendPoint[] }) => {
 export const Analytics = () => {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isResolving, setIsResolving] = useState(false);
 
-  const fetchList = async (resolve = false) => {
+  const fetchList = async (resolve = false, date?: string) => {
     if (resolve) setIsResolving(true);
     else setIsLoading(true);
     try {
       const [listRes, visitorsRes] = await Promise.all([
-        analyticsApi.getTodayVisitorList(resolve),
+        analyticsApi.getTodayVisitorList(resolve, date),
         analyticsApi.getTodayVisitors(),
       ]);
       if (listRes.success && listRes.data) {
@@ -136,6 +161,9 @@ export const Analytics = () => {
       }
       if (visitorsRes.success && visitorsRes.data) {
         setTrend(visitorsRes.data.trend);
+        if (!date && visitorsRes.data.trend.length > 0) {
+          setSelectedDate(visitorsRes.data.trend[visitorsRes.data.trend.length - 1].date);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch visitors:', error);
@@ -149,6 +177,20 @@ export const Analytics = () => {
     fetchList();
   }, []);
 
+  // 点击折线图数据点：查看当天访客
+  const handlePointClick = (index: number) => {
+    const point = trend[index];
+    if (!point) return;
+    setSelectedDate(point.date);
+    fetchList(false, point.date);
+  };
+
+  // 表格标题：MM-DD 格式
+  const formatDateLabel = (date: string) => {
+    const parts = date.split('-');
+    return parts.length === 3 ? `${parts[1]}月${parts[2]}日` : date;
+  };
+
   const formatTime = (dateString: string) => {
     return new Date(dateString).toLocaleTimeString('zh-CN', {
       hour: '2-digit',
@@ -161,8 +203,12 @@ export const Analytics = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-900">今日上线人数</h1>
-          <p className="text-gray-500 mt-1">共 {visitors.length} 位访客（按独立 IP 统计）</p>
+          <h1 className="font-display text-2xl font-bold text-gray-900">
+            {selectedDate ? `${formatDateLabel(selectedDate)}上线人数` : '上线人数统计'}
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {selectedDate ? formatDateLabel(selectedDate) : '今天'}共 {visitors.length} 位访客（按独立 IP 统计）
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -173,7 +219,7 @@ export const Analytics = () => {
             返回仪表盘
           </Link>
           <button
-            onClick={() => fetchList(true)}
+            onClick={() => fetchList(true, selectedDate)}
             disabled={isResolving}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-accent-500 border border-accent-500 rounded-lg hover:bg-accent-50 transition-colors disabled:opacity-50"
           >
@@ -183,14 +229,19 @@ export const Analytics = () => {
         </div>
       </div>
 
-      {/* 近 7 天流量折线图 */}
+      {/* 近 7 天流量折线图（点击数据点查看当天访客） */}
       <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-accent-500" />
           <h2 className="font-display text-lg font-bold text-gray-900">近 7 天上线人数趋势</h2>
+          <span className="text-xs text-gray-400 ml-auto">点击数据点查看当天访客</span>
         </div>
         {trend.length > 0 ? (
-          <VisitorChart data={trend} />
+          <VisitorChart
+            data={trend}
+            selectedIndex={selectedDate ? trend.findIndex((t) => t.date === selectedDate) : null}
+            onPointClick={handlePointClick}
+          />
         ) : (
           <div className="text-center py-8 text-gray-500 text-sm">
             暂无趋势数据，等有访客后这里会显示折线图

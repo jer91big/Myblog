@@ -99,18 +99,23 @@ export const getTodayVisitors = async (
   }
 };
 
-// 今日上线人列表（IP + 属地，属地按需解析并缓存到数据库）
+// 指定日期上线人列表（IP + 属地，属地按需解析并缓存到数据库）
 export const getTodayVisitorList = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const today = todayStr();
-    let visits = await Visit.find({ date: today }).sort({ firstSeenAt: 1 });
+    // ?date=YYYY-MM-DD：查询指定日期（默认今天）
+    const date = (req.query.date as string) || todayStr();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      res.status(400).json({ success: false, message: 'Invalid date format' });
+      return;
+    }
+    let visits = await Visit.find({ date }).sort({ firstSeenAt: 1 });
 
     // ?refresh=1：清空缓存重新解析（用于切换语言或修正属地）
     if (req.query.refresh === '1' && visits.length > 0) {
-      await Visit.updateMany({ date: today }, { $set: { location: '' } });
+      await Visit.updateMany({ date }, { $set: { location: '' } });
       visits = visits.map((v) => ({ ...v, location: '' }) as any);
     }
 
@@ -119,7 +124,7 @@ export const getTodayVisitorList = async (
     if (missing.length > 0) {
       const resolved = await resolveLocations(missing);
       for (const [ip, loc] of resolved) {
-        await Visit.updateMany({ ip, date: today, location: '' }, { $set: { location: loc } });
+        await Visit.updateMany({ ip, date, location: '' }, { $set: { location: loc } });
       }
       // 更新内存中的列表
       for (const v of visits) {
