@@ -439,8 +439,8 @@ export const analyticsApi = {
     return response.json();
   },
 
-  getTodayVisitorList: async (): Promise<ApiResponse<{ visitors: { ip: string; location: string; firstSeenAt: string }[] }>> => {
-    const response = await authFetch(`${API_BASE_URL}/analytics/visitors/list`, {
+  getTodayVisitorList: async (refresh?: boolean): Promise<ApiResponse<{ visitors: { ip: string; location: string; firstSeenAt: string }[] }>> => {
+    const response = await authFetch(buildUrl('/analytics/visitors/list', { refresh: refresh ? 1 : undefined }), {
       method: 'GET',
       headers: headers(),
     });

@@ -18,7 +18,7 @@ export const Analytics = () => {
     if (resolve) setIsResolving(true);
     else setIsLoading(true);
     try {
-      const response = await analyticsApi.getTodayVisitorList();
+      const response = await analyticsApi.getTodayVisitorList(resolve);
       if (response.success && response.data) {
         setVisitors(response.data.visitors);
       }

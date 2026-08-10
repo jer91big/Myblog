@@ -15,7 +15,7 @@ const isPrivateIP = (ip: string): boolean => {
   );
 };
 
-// 通过 ip-api.com 批量解析 IP 属地（免费版，最多 100 个/次）
+// 通过 ip-api.com 批量解析 IP 属地（免费版，最多 100 个/次，返回中文）
 const resolveLocations = async (ips: string[]): Promise<Map<string, string>> => {
   const result = new Map<string, string>();
   const publicIps = ips.filter((ip) => !isPrivateIP(ip));
@@ -24,11 +24,14 @@ const resolveLocations = async (ips: string[]): Promise<Map<string, string>> => 
   for (let i = 0; i < publicIps.length; i += 100) {
     const batch = publicIps.slice(i, i + 100);
     try {
-      const res = await fetch('http://ip-api.com/batch?fields=query,country,regionName,city,status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(batch.map((ip) => ({ query: ip }))),
-      });
+      const res = await fetch(
+        'http://ip-api.com/batch?fields=query,country,regionName,city,status&lang=zh-CN',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(batch.map((ip) => ({ query: ip }))),
+        }
+      );
       if (res.ok) {
         const data = await res.json();
         for (const item of data) {
@@ -103,7 +106,13 @@ export const getTodayVisitorList = async (
 ): Promise<void> => {
   try {
     const today = todayStr();
-    const visits = await Visit.find({ date: today }).sort({ firstSeenAt: 1 });
+    let visits = await Visit.find({ date: today }).sort({ firstSeenAt: 1 });
+
+    // ?refresh=1：清空缓存重新解析（用于切换语言或修正属地）
+    if (req.query.refresh === '1' && visits.length > 0) {
+      await Visit.updateMany({ date: today }, { $set: { location: '' } });
+      visits = visits.map((v) => ({ ...v, location: '' }) as any);
+    }
 
     // 找出还没有属地的 IP，批量解析
     const missing = [...new Set(visits.filter((v) => !v.location).map((v) => v.ip))];
