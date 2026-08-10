@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { FileText, MessageSquare, Users, TrendingUp, ArrowUp, ArrowDown, Eye } from 'lucide-react';
 import { articleApi, commentApi, userApi, analyticsApi } from '../../api';
 import { Comment } from '../../types';
@@ -82,6 +83,7 @@ export const AdminDashboard = () => {
       value: stats.todayVisitors,
       color: 'bg-green-500',
       trend: { value: 0, up: true },
+      to: '/admin/analytics',
     },
     {
       icon: TrendingUp,
@@ -100,33 +102,50 @@ export const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">{card.label}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{card.value}</p>
-                <div className="flex items-center gap-1 mt-2">
-                  {card.trend.up ? (
-                    <ArrowUp className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <ArrowDown className="w-4 h-4 text-red-500" />
-                  )}
-                  <span className={`text-sm ${card.trend.up ? 'text-green-500' : 'text-red-500'}`}>
-                    {card.trend.value}%
-                  </span>
-                  <span className="text-gray-400 text-sm">较上周</span>
+        {statCards.map((card) => {
+          const content = (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">{card.label}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{card.value}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    {card.trend.up ? (
+                      <ArrowUp className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4 text-red-500" />
+                    )}
+                    <span className={`text-sm ${card.trend.up ? 'text-green-500' : 'text-red-500'}`}>
+                      {card.trend.value}%
+                    </span>
+                    <span className="text-gray-400 text-sm">较上周</span>
+                  </div>
+                </div>
+                <div className={`w-12 h-12 ${card.color} rounded-lg flex items-center justify-center`}>
+                  <card.icon className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <div className={`w-12 h-12 ${card.color} rounded-lg flex items-center justify-center`}>
-                <card.icon className="w-6 h-6 text-white" />
-              </div>
+              {card.to && (
+                <span className="inline-flex items-center gap-1 text-xs text-accent-500 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  点击查看 IP 属地
+                </span>
+              )}
+            </>
+          );
+          return card.to ? (
+            <Link
+              key={card.label}
+              to={card.to}
+              className="group bg-white rounded-xl shadow-md p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer"
+            >
+              {content}
+            </Link>
+          ) : (
+            <div key={card.label} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+              {content}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

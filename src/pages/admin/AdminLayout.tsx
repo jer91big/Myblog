@@ -14,6 +14,7 @@ import {
   User,
   Home,
   BookOpen,
+  Eye,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -29,6 +30,7 @@ const menuItems = [
   { icon: Tag, path: '/admin/tags', label: '标签管理' },
   { icon: MessageSquare, path: '/admin/comments', label: '评论管理' },
   { icon: Users, path: '/admin/users', label: '用户管理' },
+  { icon: Eye, path: '/admin/analytics', label: '访问统计' },
   { icon: Settings, path: '/admin/settings', label: '系统设置' },
 ];
 

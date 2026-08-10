@@ -4,6 +4,7 @@ export interface IVisit extends Document {
   ip: string;
   date: string; // YYYY-MM-DD（Asia/Shanghai）
   firstSeenAt: Date;
+  location: string; // IP 属地（缓存，查询时按需解析）
 }
 
 const VisitSchema: Schema<IVisit> = new Schema(
@@ -11,6 +12,7 @@ const VisitSchema: Schema<IVisit> = new Schema(
     ip: { type: String, required: true },
     date: { type: String, required: true },
     firstSeenAt: { type: Date, default: Date.now },
+    location: { type: String, default: '' },
   },
   { timestamps: true }
 );

@@ -25,6 +25,7 @@ import { TagManagement } from '@/pages/admin/TagManagement';
 import { CommentManagement } from '@/pages/admin/CommentManagement';
 import { UserManagement } from '@/pages/admin/UserManagement';
 import { SystemSettings } from '@/pages/admin/SystemSettings';
+import { Analytics } from '@/pages/admin/Analytics';
 import { useAuthStore } from '@/store/authStore';
 
 const PublicLayout = ({ children }: { children: React.ReactNode }) => {
@@ -257,6 +258,16 @@ export default function App() {
                 <NoteEditor />
               </AdminLayout>
             </AuthProtected>
+          }
+        />
+        <Route
+          path="/admin/analytics"
+          element={
+            <AdminProtected>
+              <AdminLayout>
+                <Analytics />
+              </AdminLayout>
+            </AdminProtected>
           }
         />
         <Route

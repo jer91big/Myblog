@@ -438,6 +438,14 @@ export const analyticsApi = {
     });
     return response.json();
   },
+
+  getTodayVisitorList: async (): Promise<ApiResponse<{ visitors: { ip: string; location: string; firstSeenAt: string }[] }>> => {
+    const response = await authFetch(`${API_BASE_URL}/analytics/visitors/list`, {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
 };
 
 export const noteApi = {
