@@ -1,0 +1,20 @@
+/* 公告弹窗的 StarBorder 按钮：覆盖组件默认黑底，跟随主题色 */
+.announcement-star .inner-content {
+  background: #fff;
+  border-color: #fdba74;
+  color: #1e293b;
+}
+
+.announcement-star:hover .inner-content {
+  background: #fff7ed;
+}
+
+.dark .announcement-star .inner-content {
+  background: #1e293b;
+  border-color: #fdba74;
+  color: #fff;
+}
+
+.dark .announcement-star:hover .inner-content {
+  background: #334155;
+}

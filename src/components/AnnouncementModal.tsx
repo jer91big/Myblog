@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ElectricBorder from './ElectricBorder';
 import StarBorder from './StarBorder';
+import './AnnouncementModal.css';
 
 const STORAGE_KEY = 'announcement-dismissed';
 
@@ -86,10 +87,10 @@ export const AnnouncementModal = () => {
                 as="button"
                 color="#f97316"
                 speed="6s"
-                className="w-full"
+                className="announcement-star w-full"
                 onClick={handleClose}
               >
-                <span className="block w-full px-6 py-2.5 text-center font-medium text-gray-800 dark:text-white transition-colors">
+                <span className="block w-full px-6 py-2.5 text-center font-medium transition-colors">
                   确认，开始浏览
                 </span>
               </StarBorder>
