@@ -45,7 +45,8 @@ export const AnnouncementModal = () => {
 
             <p className="mt-4 text-gray-700 dark:text-gray-300 leading-relaxed">
               这个网站由 <span className="font-semibold text-accent-500">AI 制作</span>，
-              是一个功能完整的小型博客，包含：
+              是一个功能完整的小型博客，<span className="font-medium text-gray-900 dark:text-white">主要面向 PC 端</span>，
+              建议使用电脑浏览器访问以获得最佳体验，包含：
             </p>
 
             <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
