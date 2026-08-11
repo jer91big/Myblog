@@ -61,9 +61,6 @@ export const AnnouncementModal = () => {
               <li className="flex items-center gap-2">
                 <span>🌙</span> 夜间模式一键切换
               </li>
-              <li className="flex items-center gap-2">
-                <span>📊</span> 后台访客统计与数据分析
-              </li>
             </ul>
 
             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
