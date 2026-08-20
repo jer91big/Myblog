@@ -234,6 +234,17 @@ export const articleApi = {
     return response.json();
   },
 
+  getArticleNavigation: async (id: string): Promise<ApiResponse<{
+    previous: { id: string; title: string; publishedAt: string } | null;
+    next: { id: string; title: string; publishedAt: string } | null;
+  }>> => {
+    const response = await authFetch(`${API_BASE_URL}/articles/${id}/navigation`, {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+
   getRelatedArticles: async (id: string, limit?: number): Promise<ApiResponse<Article[]>> => {
     const response = await authFetch(buildUrl(`/articles/${id}/related`, { limit }), {
       method: 'GET',

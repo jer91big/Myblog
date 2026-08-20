@@ -431,6 +431,52 @@ export const getPopularArticles = async (req: Request, res: Response): Promise<v
   }
 };
 
+export const getArticleNavigation = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const article = await Article.findOne({ _id: id, status: 'published' }).select('publishedAt');
+
+    if (!article?.publishedAt) {
+      res.status(404).json({ success: false, message: 'Article not found' });
+      return;
+    }
+
+    const articleDate = article.publishedAt;
+    const articleId = article._id;
+    const fields = 'title publishedAt';
+
+    const [previous, next] = await Promise.all([
+      Article.findOne({
+        status: 'published',
+        $or: [
+          { publishedAt: { $lt: articleDate } },
+          { publishedAt: articleDate, _id: { $lt: articleId } },
+        ],
+      })
+        .sort({ publishedAt: -1, _id: -1 })
+        .select(fields),
+      Article.findOne({
+        status: 'published',
+        $or: [
+          { publishedAt: { $gt: articleDate } },
+          { publishedAt: articleDate, _id: { $gt: articleId } },
+        ],
+      })
+        .sort({ publishedAt: 1, _id: 1 })
+        .select(fields),
+    ]);
+
+    const serialize = (item: typeof article | null) => item
+      ? { id: item._id.toString(), title: item.title, publishedAt: item.publishedAt }
+      : null;
+
+    res.json({ success: true, data: { previous: serialize(previous), next: serialize(next) } });
+  } catch (error) {
+    console.error('Get article navigation error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+};
+
 export const getRelatedArticles = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;

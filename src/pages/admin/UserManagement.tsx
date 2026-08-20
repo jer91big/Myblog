@@ -55,7 +55,8 @@ export const UserManagement = () => {
       </div>
 
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[680px]">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">用户</th>
@@ -142,6 +143,7 @@ export const UserManagement = () => {
             )}
           </tbody>
         </table>
+        </div>
 
         {totalPages > 1 && (
           <div className="px-6 py-4 border-t flex items-center justify-between">

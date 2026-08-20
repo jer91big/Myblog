@@ -1,12 +1,61 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Github, Twitter, Mail, Heart } from 'lucide-react';
+import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 export const Footer = () => {
+  const footerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!footerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      // Footer 内容 stagger 入场
+      const items = footerRef.current!.querySelectorAll('.footer-item');
+      gsap.set(items, { y: 30, opacity: 0 });
+
+      ScrollTrigger.create({
+        trigger: footerRef.current,
+        start: 'top 90%',
+        onEnter: () => {
+          gsap.to(items, {
+            y: 0,
+            opacity: 1,
+            stagger: 0.08,
+            duration: 0.6,
+            ease: 'power2.out',
+          });
+        },
+        once: true,
+      });
+    }, footerRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  const handleSocialHover = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    gsap.to(e.currentTarget, {
+      y: -4,
+      scale: 1.1,
+      duration: 0.3,
+      ease: 'back.out(2)',
+    });
+  };
+
+  const handleSocialLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    gsap.to(e.currentTarget, {
+      y: 0,
+      scale: 1,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  };
+
   return (
-    <footer className="bg-gray-900 text-white mt-16">
+    <footer ref={footerRef} className="bg-gray-900 text-white mt-16">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="col-span-1 md:col-span-2">
+          <div className="footer-item col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xl">B</span>
@@ -23,36 +72,42 @@ export const Footer = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-600 transition-colors"
+                onMouseEnter={handleSocialHover}
+                onMouseLeave={handleSocialLeave}
               >
                 <Github className="w-5 h-5" />
               </a>
               <a
                 href="#"
                 className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-600 transition-colors"
+                onMouseEnter={handleSocialHover}
+                onMouseLeave={handleSocialLeave}
               >
                 <Twitter className="w-5 h-5" />
               </a>
               <a
                 href="#"
                 className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-accent-500 transition-colors"
+                onMouseEnter={handleSocialHover}
+                onMouseLeave={handleSocialLeave}
               >
                 <Mail className="w-5 h-5" />
               </a>
             </div>
           </div>
 
-          <div>
+          <div className="footer-item">
             <h3 className="font-semibold mb-4">快速链接</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-gray-400 hover:text-accent-400 transition-colors">
+                <Link to="/" className="text-gray-400 hover:text-accent-400 hover:translate-x-1 inline-block transition-all duration-200">
                   首页
                 </Link>
               </li>
               <li>
                 <Link
                   to="/articles/category/all"
-                  className="text-gray-400 hover:text-accent-400 transition-colors"
+                  className="text-gray-400 hover:text-accent-400 hover:translate-x-1 inline-block transition-all duration-200"
                 >
                   分类
                 </Link>
@@ -60,7 +115,7 @@ export const Footer = () => {
               <li>
                 <Link
                   to="/articles/tag/all"
-                  className="text-gray-400 hover:text-accent-400 transition-colors"
+                  className="text-gray-400 hover:text-accent-400 hover:translate-x-1 inline-block transition-all duration-200"
                 >
                   标签
                 </Link>
@@ -68,7 +123,7 @@ export const Footer = () => {
               <li>
                 <Link
                   to="/profile"
-                  className="text-gray-400 hover:text-accent-400 transition-colors"
+                  className="text-gray-400 hover:text-accent-400 hover:translate-x-1 inline-block transition-all duration-200"
                 >
                   关于我
                 </Link>
@@ -76,10 +131,10 @@ export const Footer = () => {
             </ul>
           </div>
 
-          <div>
+          <div className="footer-item">
             <h3 className="font-semibold mb-4">订阅</h3>
             <p className="text-gray-400 mb-4">订阅获取最新文章推送</p>
-            <form className="flex">
+            <form className="flex" onSubmit={(e) => e.preventDefault()}>
               <input
                 type="email"
                 placeholder="输入邮箱"

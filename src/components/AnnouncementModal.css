@@ -1,4 +1,10 @@
 /* 公告弹窗的 StarBorder 按钮：覆盖组件默认黑底，跟随主题色 */
+.announcement-modal-content {
+  max-height: calc(100dvh - 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .announcement-star .inner-content {
   background: #fff;
   border-color: #fdba74;
@@ -17,4 +23,15 @@
 
 .dark .announcement-star:hover .inner-content {
   background: #334155;
+}
+
+@media (max-width: 640px) {
+  .announcement-modal {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .announcement-star .inner-content {
+    min-height: 44px;
+  }
 }

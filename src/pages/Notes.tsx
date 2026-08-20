@@ -1,20 +1,50 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Calendar, Tag } from 'lucide-react';
 import { noteApi } from '../api';
 import { Note } from '../types';
 import BorderGlow from '../components/BorderGlow';
 import { Pagination } from '../components/Pagination';
+import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 export const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const notesGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchNotes();
   }, [currentPage]);
+
+  // 笔记卡片 stagger 入场
+  useEffect(() => {
+    if (isLoading || !notesGridRef.current) return;
+
+    const cards = notesGridRef.current.querySelectorAll('.note-card');
+    if (!cards.length) return;
+
+    gsap.set(cards, { y: 50, opacity: 0, scale: 0.95 });
+
+    const trigger = ScrollTrigger.create({
+      trigger: notesGridRef.current,
+      start: 'top 85%',
+      onEnter: () => {
+        gsap.to(cards, {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          stagger: 0.08,
+          duration: 0.6,
+          ease: 'power2.out',
+        });
+      },
+      once: true,
+    });
+
+    return () => trigger.kill();
+  }, [isLoading, notes]);
 
   const fetchNotes = async () => {
     setIsLoading(true);
@@ -70,44 +100,45 @@ export const Notes = () => {
       <main className="container mx-auto px-4 py-12">
         {notes.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div ref={notesGridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {notes.map((note) => (
-                <BorderGlow
-                  key={note.id}
-                  glowColor="280 70"
-                  backgroundColor="#ffffff"
-                  borderRadius={16}
-                  glowRadius={30}
-                  glowIntensity={0.8}
-                  coneSpread={20}
-                  colors={['#a78bfa', '#c084fc', '#818cf8']}
-                >
-                  <Link
-                    to={`/notes/${note.id}`}
-                    className="block p-6"
+                <div key={note.id} className="note-card">
+                  <BorderGlow
+                    glowColor="280 70"
+                    backgroundColor="#ffffff"
+                    borderRadius={16}
+                    glowRadius={30}
+                    glowIntensity={0.8}
+                    coneSpread={20}
+                    colors={['#a78bfa', '#c084fc', '#818cf8']}
                   >
-                    <h2 className="font-display text-lg font-bold text-gray-900 mb-3 hover:text-accent-600 transition-colors line-clamp-2">
-                      {note.title}
-                    </h2>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                      {note.excerpt}
-                    </p>
-                    {note.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {note.tags.slice(0, 4).map((tag, i) => (
-                          <span key={i} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
-                            <Tag className="w-3 h-3" />
-                            {tag}
-                          </span>
-                        ))}
+                    <Link
+                      to={`/notes/${note.id}`}
+                      className="block p-6 hover:translate-y-[-2px] transition-transform duration-200"
+                    >
+                      <h2 className="font-display text-lg font-bold text-gray-900 mb-3 hover:text-accent-600 transition-colors line-clamp-2">
+                        {note.title}
+                      </h2>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                        {note.excerpt}
+                      </p>
+                      {note.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {note.tags.slice(0, 4).map((tag, i) => (
+                            <span key={i} className="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+                              <Tag className="w-3 h-3" />
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-sm text-gray-400">
+                        <Calendar className="w-4 h-4" />
+                        {formatDate(note.publishedAt)}
                       </div>
-                    )}
-                    <div className="flex items-center gap-1 text-sm text-gray-400">
-                      <Calendar className="w-4 h-4" />
-                      {formatDate(note.publishedAt)}
-                    </div>
-                  </Link>
-                </BorderGlow>
+                    </Link>
+                  </BorderGlow>
+                </div>
               ))}
             </div>
 

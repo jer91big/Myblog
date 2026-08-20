@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Tag } from 'lucide-react';
 import { articleApi, categoryApi, tagApi } from '../api';
@@ -6,6 +6,7 @@ import { Article, Category, Tag as TagType } from '../types';
 import { ArticleCard } from '../components/ArticleCard';
 import { Sidebar } from '../components/Sidebar';
 import { Pagination } from '../components/Pagination';
+import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 export const TagList = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -17,10 +18,66 @@ export const TagList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const tagGridRef = useRef<HTMLDivElement>(null);
+  const articlesGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
   }, [slug, currentPage]);
+
+  // 标签云 stagger 入场
+  useEffect(() => {
+    if (isLoading || !tagGridRef.current) return;
+
+    const items = tagGridRef.current.querySelectorAll('.tag-pill');
+    if (!items.length) return;
+
+    gsap.set(items, { y: 20, opacity: 0, scale: 0.9 });
+    ScrollTrigger.create({
+      trigger: tagGridRef.current,
+      start: 'top 90%',
+      onEnter: () => {
+        gsap.to(items, {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          stagger: 0.03,
+          duration: 0.4,
+          ease: 'back.out(1.5)',
+        });
+      },
+      once: true,
+    });
+
+    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
+  }, [isLoading, tags]);
+
+  // 文章卡片 stagger 入场
+  useEffect(() => {
+    if (isLoading || !articlesGridRef.current) return;
+
+    const cards = articlesGridRef.current.querySelectorAll('.article-card-item');
+    if (!cards.length) return;
+
+    gsap.set(cards, { y: 50, opacity: 0, scale: 0.95 });
+    ScrollTrigger.create({
+      trigger: articlesGridRef.current,
+      start: 'top 85%',
+      onEnter: () => {
+        gsap.to(cards, {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          stagger: 0.1,
+          duration: 0.7,
+          ease: 'power2.out',
+        });
+      },
+      once: true,
+    });
+
+    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
+  }, [isLoading, articles]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -85,12 +142,12 @@ export const TagList = () => {
         {slug === 'all' && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-8">
             <h2 className="font-display text-lg font-bold mb-4">选择标签</h2>
-            <div className="flex flex-wrap gap-3">
+            <div ref={tagGridRef} className="flex flex-wrap gap-3">
               {tags.map((tag) => (
                 <Link
                   key={tag.id}
                   to={`/articles/tag/${tag.slug}`}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-purple-100 hover:text-purple-700 rounded-lg transition-colors"
+                  className="tag-pill flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-purple-100 hover:text-purple-700 hover:scale-105 rounded-lg transition-all duration-200"
                 >
                   <Tag className="w-4 h-4" />
                   {tag.name}
@@ -113,9 +170,11 @@ export const TagList = () => {
             )}
 
             {articles.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div ref={articlesGridRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {articles.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
+                  <div key={article.id} className="article-card-item">
+                    <ArticleCard article={article} />
+                  </div>
                 ))}
               </div>
             ) : (

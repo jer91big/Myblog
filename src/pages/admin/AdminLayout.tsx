@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   X,
-  User,
   Home,
   BookOpen,
   Eye,
@@ -35,7 +34,7 @@ const menuItems = [
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -49,12 +48,22 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {isAdmin && isSidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          aria-label="关闭后台菜单"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {isAdmin && (
-      <aside
-        className={`fixed left-0 top-0 h-full bg-white shadow-lg transition-all duration-300 z-50 ${
-          isSidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
-        }`}
-      >
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 max-w-[85vw] flex-col bg-white shadow-lg transition-transform duration-300 lg:max-w-none ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          aria-hidden={!isSidebarOpen}
+        >
         <div className="h-full flex flex-col">
           <div className="p-6 border-b">
             <div className="flex items-center gap-3">
@@ -65,12 +74,17 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             </div>
           </div>
 
-          <nav className="flex-1 p-4">
+          <nav className="min-h-0 flex-1 overflow-y-auto p-4">
             <ul className="space-y-2">
               {menuItems.map((item) => (
                 <li key={item.path}>
                   <Link
                     to={item.path}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        setIsSidebarOpen(false);
+                      }
+                    }}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                       location.pathname === item.path
                         ? 'bg-primary-100 text-primary-700'
@@ -87,7 +101,12 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
           <div className="p-4 border-t">
             <button
-              onClick={handleLogout}
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  setIsSidebarOpen(false);
+                }
+                handleLogout();
+              }}
               className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <LogOut className="w-5 h-5" />
@@ -99,16 +118,16 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       )}
 
       <div
-        className={`transition-all duration-300 ${
-          isAdmin && isSidebarOpen ? 'ml-64' : 'ml-0'
+        className={`min-w-0 transition-[margin] duration-300 ${
+          isAdmin && isSidebarOpen ? 'lg:ml-64' : 'lg:ml-0'
         }`}
       >
         <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
             {isAdmin ? (
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="min-w-11 min-h-11 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               {isSidebarOpen ? (
                 <X className="w-6 h-6 text-gray-600" />
@@ -120,23 +139,24 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             <span className="font-display text-xl font-bold text-gray-900">创作中心</span>
             )}
 
-            <div className="flex items-center gap-4">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-4">
               <Link
                 to="/"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                className="flex min-h-11 min-w-11 items-center gap-1.5 px-2.5 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors sm:px-3"
+                title="返回首页"
               >
                 <Home className="w-4 h-4" />
-                <span>返回首页</span>
+                <span className="hidden sm:inline">返回首页</span>
               </Link>
-              <span className="text-gray-600">欢迎, {user?.username}</span>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-medium">
+              <span className="hidden text-gray-600 sm:inline">欢迎, {user?.username}</span>
+              <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white font-medium">
                 {user?.username.charAt(0).toUpperCase()}
               </div>
             </div>
           </div>
         </header>
 
-        <main className="p-6">
+        <main className="min-w-0 p-4 sm:p-6">
           {children}
         </main>
       </div>

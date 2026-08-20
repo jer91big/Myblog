@@ -9,6 +9,7 @@ import {
   toggleLike,
   getPopularArticles,
   getRelatedArticles,
+  getArticleNavigation,
 } from '../controllers/articleController.js';
 import { authenticate, optionalAuth, requireAdmin } from '../middleware/auth.js';
 
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.get('/', getArticles);
 router.get('/popular', getPopularArticles);
+router.get('/:id/navigation', getArticleNavigation);
 router.get('/:id', optionalAuth, getArticleById);
 router.get('/:id/related', getRelatedArticles);
 router.post('/', authenticate, createArticle);

@@ -3,7 +3,7 @@ import ElectricBorder from './ElectricBorder';
 import StarBorder from './StarBorder';
 import './AnnouncementModal.css';
 
-const STORAGE_KEY = 'announcement-dismissed';
+const STORAGE_KEY = 'announcement-dismissed-v2';
 
 // 公告弹窗：AI 制作的欢迎公告（勾选"今天不再弹出"后当天不再显示）
 export const AnnouncementModal = () => {
@@ -29,7 +29,7 @@ export const AnnouncementModal = () => {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="announcement-modal fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="announcement-title">
       {/* 背景遮罩 */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -38,8 +38,8 @@ export const AnnouncementModal = () => {
 
       <div className="relative">
         <ElectricBorder color="#f97316" borderRadius={24} speed={0.8}>
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-[calc(100vw-4rem)]">
-            <h2 className="font-display text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="announcement-modal-content bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-8 max-w-md w-[calc(100vw-1.5rem)] sm:w-[calc(100vw-4rem)]">
+            <h2 id="announcement-title" className="font-display text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
               🎉 欢迎来到 MyBlog
             </h2>
 
@@ -50,17 +50,20 @@ export const AnnouncementModal = () => {
             </p>
 
             <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <li className="flex items-center gap-2">
-                <span>📝</span> 发表 Markdown 文章与笔记
+              <li className="flex items-start gap-2">
+                <span>📝</span><span>发表 Markdown 文章与笔记</span>
               </li>
-              <li className="flex items-center gap-2">
-                <span>🎵</span> 网易云音乐歌单在线播放
+              <li className="flex items-start gap-2">
+                <span>📚</span><span>文章目录、阅读进度与标题锚点</span>
               </li>
-              <li className="flex items-center gap-2">
-                <span>💬</span> 自由评论，即时可见
+              <li className="flex items-start gap-2">
+                <span>💻</span><span>代码块一键复制</span>
               </li>
-              <li className="flex items-center gap-2">
-                <span>🌙</span> 夜间模式一键切换
+              <li className="flex items-start gap-2">
+                <span>🎵</span><span>网易云音乐歌单在线播放</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span>💬</span><span>自由评论与夜间模式切换</span>
               </li>
             </ul>
 
@@ -74,7 +77,7 @@ export const AnnouncementModal = () => {
                 type="checkbox"
                 checked={dontShowToday}
                 onChange={(e) => setDontShowToday(e.target.checked)}
-                className="w-4 h-4 accent-orange-500"
+                className="w-5 h-5 accent-orange-500"
               />
               <span className="text-sm text-gray-600 dark:text-gray-400">今天不再弹出</span>
             </label>

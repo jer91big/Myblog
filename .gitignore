@@ -28,3 +28,4 @@ dist-ssr
 data/db/
 .vercel
 .env.production
+.claude/worktrees/

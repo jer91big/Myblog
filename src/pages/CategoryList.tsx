@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, FolderOpen } from 'lucide-react';
 import { articleApi, categoryApi, tagApi } from '../api';
@@ -6,6 +6,7 @@ import { Article, Category, Tag } from '../types';
 import { ArticleCard } from '../components/ArticleCard';
 import { Sidebar } from '../components/Sidebar';
 import { Pagination } from '../components/Pagination';
+import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 export const CategoryList = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -17,10 +18,66 @@ export const CategoryList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const categoryGridRef = useRef<HTMLDivElement>(null);
+  const articlesGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
   }, [slug, currentPage]);
+
+  // 分类标签 stagger 入场
+  useEffect(() => {
+    if (isLoading || !categoryGridRef.current) return;
+
+    const items = categoryGridRef.current.querySelectorAll('.category-tag');
+    if (!items.length) return;
+
+    gsap.set(items, { y: 20, opacity: 0, scale: 0.9 });
+    ScrollTrigger.create({
+      trigger: categoryGridRef.current,
+      start: 'top 90%',
+      onEnter: () => {
+        gsap.to(items, {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          stagger: 0.04,
+          duration: 0.4,
+          ease: 'back.out(1.5)',
+        });
+      },
+      once: true,
+    });
+
+    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
+  }, [isLoading, categories]);
+
+  // 文章卡片 stagger 入场
+  useEffect(() => {
+    if (isLoading || !articlesGridRef.current) return;
+
+    const cards = articlesGridRef.current.querySelectorAll('.article-card-item');
+    if (!cards.length) return;
+
+    gsap.set(cards, { y: 50, opacity: 0, scale: 0.95 });
+    ScrollTrigger.create({
+      trigger: articlesGridRef.current,
+      start: 'top 85%',
+      onEnter: () => {
+        gsap.to(cards, {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          stagger: 0.1,
+          duration: 0.7,
+          ease: 'power2.out',
+        });
+      },
+      once: true,
+    });
+
+    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
+  }, [isLoading, articles]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -85,12 +142,12 @@ export const CategoryList = () => {
         {slug === 'all' && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-8">
             <h2 className="font-display text-lg font-bold mb-4">选择分类</h2>
-            <div className="flex flex-wrap gap-3">
+            <div ref={categoryGridRef} className="flex flex-wrap gap-3">
               {categories.map((category) => (
                 <Link
                   key={category.id}
                   to={`/articles/category/${category.slug}`}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-primary-100 hover:text-primary-700 rounded-lg transition-colors"
+                  className="category-tag flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-primary-100 hover:text-primary-700 hover:scale-105 rounded-lg transition-all duration-200"
                 >
                   <FolderOpen className="w-4 h-4" />
                   {category.name}
@@ -113,9 +170,11 @@ export const CategoryList = () => {
             )}
 
             {articles.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div ref={articlesGridRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {articles.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
+                  <div key={article.id} className="article-card-item">
+                    <ArticleCard article={article} />
+                  </div>
                 ))}
               </div>
             ) : (

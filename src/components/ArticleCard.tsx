@@ -1,7 +1,9 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Heart, Calendar, User } from 'lucide-react';
 import { Article } from '../types';
 import BorderGlow from './BorderGlow';
+import { gsap } from '../hooks/useGsap';
 
 interface ArticleCardProps {
   article: Article;
@@ -9,6 +11,9 @@ interface ArticleCardProps {
 }
 
 export const ArticleCard = ({ article, featured = false }: ArticleCardProps) => {
+  const cardRef = useRef<HTMLElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -17,6 +22,40 @@ export const ArticleCard = ({ article, featured = false }: ArticleCardProps) => 
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const handleMouseEnter = () => {
+    if (!cardRef.current) return;
+    gsap.to(cardRef.current, {
+      y: -6,
+      scale: 1.01,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+    if (imgRef.current) {
+      gsap.to(imgRef.current, {
+        scale: 1.08,
+        duration: 0.4,
+        ease: 'power2.out',
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (!cardRef.current) return;
+    gsap.to(cardRef.current, {
+      y: 0,
+      scale: 1,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+    if (imgRef.current) {
+      gsap.to(imgRef.current, {
+        scale: 1,
+        duration: 0.4,
+        ease: 'power2.out',
+      });
+    }
   };
 
   return (
@@ -30,17 +69,23 @@ export const ArticleCard = ({ article, featured = false }: ArticleCardProps) => 
       colors={['#f97316', '#fb923c', '#fbbf24']}
     >
       <article
-        className={`bg-white rounded-xl animate-fade-in ${
+        ref={cardRef as any}
+        className={`bg-white rounded-xl ${
           featured ? 'col-span-full' : ''
         }`}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        style={{ willChange: 'transform' }}
       >
       <div className="flex flex-col md:flex-row">
         {article.featuredImage && (
           <div className="md:w-1/3 h-48 md:h-auto relative overflow-hidden">
             <img
+              ref={imgRef}
               src={article.featuredImage}
               alt={article.title}
               className="w-full h-full object-cover"
+              style={{ willChange: 'transform' }}
             />
           </div>
         )}
@@ -76,7 +121,7 @@ export const ArticleCard = ({ article, featured = false }: ArticleCardProps) => 
               <Link
                 key={tag.id}
                 to={`/articles/tag/${tag.slug}`}
-                className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 hover:scale-105 transition-all duration-200"
               >
                 #{tag.name}
               </Link>

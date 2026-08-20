@@ -221,6 +221,34 @@
   color: #94a3b8;
 }
 
+@media (max-width: 640px) {
+  .music-fab {
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    width: 48px;
+    height: 48px;
+  }
+
+  .music-panel {
+    right: max(0.75rem, env(safe-area-inset-right));
+    left: max(0.75rem, env(safe-area-inset-left));
+    bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 3.75rem);
+    width: auto;
+    max-width: none;
+    max-height: min(70dvh, 38rem);
+    overflow-y: auto;
+  }
+
+  .music-panel .aplayer-list {
+    max-height: 180px !important;
+    overflow-y: auto !important;
+  }
+
+  .music-aplayer {
+    padding: 0 0.5rem 0.5rem;
+  }
+}
+
 /* 暗色模式 */
 .dark .music-fab {
   background-color: #1e293b;

@@ -1,10 +1,11 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search as SearchIcon, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
 import { searchApi, articleApi, categoryApi, tagApi } from '../api';
 import { Article, Category, Tag } from '../types';
 import { ArticleCard } from '../components/ArticleCard';
 import { Sidebar } from '../components/Sidebar';
+import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 export const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,6 +17,7 @@ export const Search = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setInputValue(query);
@@ -27,6 +29,33 @@ export const Search = () => {
     }
     fetchSidebarData();
   }, [query, type]);
+
+  // 搜索结果 stagger 入场
+  useEffect(() => {
+    if (isLoading || !resultsRef.current) return;
+
+    const cards = resultsRef.current.querySelectorAll('.article-card-item');
+    if (!cards.length) return;
+
+    gsap.set(cards, { y: 40, opacity: 0, scale: 0.95 });
+    ScrollTrigger.create({
+      trigger: resultsRef.current,
+      start: 'top 85%',
+      onEnter: () => {
+        gsap.to(cards, {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          stagger: 0.08,
+          duration: 0.6,
+          ease: 'power2.out',
+        });
+      },
+      once: true,
+    });
+
+    return () => ScrollTrigger.getAll().forEach((t) => t.kill());
+  }, [isLoading, results]);
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
@@ -135,9 +164,11 @@ export const Search = () => {
                 <div className="animate-spin w-10 h-10 border-4 border-accent-500 border-t-transparent rounded-full" />
               </div>
             ) : results.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div ref={resultsRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {results.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
+                  <div key={article.id} className="article-card-item">
+                    <ArticleCard article={article} />
+                  </div>
                 ))}
               </div>
             ) : (

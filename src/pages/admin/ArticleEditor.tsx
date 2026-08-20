@@ -215,18 +215,18 @@ export const ArticleEditor = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900">
             {id ? '编辑文章' : '新建文章'}
           </h1>
           <p className="text-gray-500 mt-1">{id ? '修改现有文章' : '创建一篇新文章'}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
           <button
             onClick={() => handleSave(false)}
             disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="min-h-11 justify-center flex items-center gap-2 px-3 sm:px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             保存草稿
@@ -234,7 +234,7 @@ export const ArticleEditor = () => {
           <button
             onClick={() => handleSave(true)}
             disabled={isSaving || !title.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors disabled:opacity-50"
+            className="min-h-11 justify-center flex items-center gap-2 px-3 sm:px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors disabled:opacity-50"
           >
             <Eye className="w-4 h-4" />
             {isSaving ? '发布中...' : '发布文章'}
@@ -249,9 +249,9 @@ export const ArticleEditor = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <input
               type="text"
               placeholder="文章标题"
@@ -261,7 +261,7 @@ export const ArticleEditor = () => {
             />
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             {/* 编辑器工具栏 */}
             <div className="flex items-center gap-1 border-b border-gray-100 pb-3 mb-3 flex-wrap">
               <button
@@ -337,12 +337,12 @@ export const ArticleEditor = () => {
               onChange={handleImageUpload}
               className="hidden"
             />
-            <EditorContent editor={editor} className="prose max-w-none" />
+            <EditorContent editor={editor} className="article-editor-content prose max-w-none overflow-x-auto" />
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h3 className="font-semibold mb-4">分类</h3>
             <select
               value={categoryId}
@@ -358,7 +358,7 @@ export const ArticleEditor = () => {
             </select>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h3 className="font-semibold mb-4">标签</h3>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
@@ -377,7 +377,7 @@ export const ArticleEditor = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h3 className="font-semibold mb-4">状态</h3>
             <div className="flex gap-2">
               <button
@@ -403,7 +403,7 @@ export const ArticleEditor = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h3 className="font-semibold mb-4">特色图片</h3>
             <input
               type="url"
@@ -414,7 +414,7 @@ export const ArticleEditor = () => {
             />
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <h3 className="font-semibold mb-4">SEO 设置</h3>
             <div className="space-y-4">
               <input

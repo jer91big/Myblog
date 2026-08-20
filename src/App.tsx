@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import ClickSpark from '@/components/ClickSpark';
@@ -101,28 +102,21 @@ const AdminProtected = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-export default function App() {
-  const { isAuthenticated, fetchCurrentUser } = useAuthStore();
-
-  // 页面加载时：如果本地存有 token，自动恢复登录状态（刷新/重开网站不再显示未登录）
-  useEffect(() => {
-    if (localStorage.getItem('accessToken') && !isAuthenticated) {
-      fetchCurrentUser();
-    }
-  }, [fetchCurrentUser, isAuthenticated]);
+const AppRoutes = () => {
+  const location = useLocation();
 
   return (
-    <Router>
-      <MusicPlayer />
-      <AnnouncementModal />
-      <ClickSpark
-        sparkColor="#f97316"
-        sparkSize={8}
-        sparkRadius={12}
-        sparkCount={6}
-        duration={500}
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location.pathname}
+        className="page-transition"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
       >
-      <Routes>
+        <Routes location={location}>
+
         <Route
           path="/"
           element={
@@ -322,7 +316,33 @@ export default function App() {
             </AdminProtected>
           }
         />
-      </Routes>
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+export default function App() {
+  const { isAuthenticated, fetchCurrentUser } = useAuthStore();
+
+  useEffect(() => {
+    if (localStorage.getItem('accessToken') && !isAuthenticated) {
+      fetchCurrentUser();
+    }
+  }, [fetchCurrentUser, isAuthenticated]);
+
+  return (
+    <Router>
+      <MusicPlayer />
+      <AnnouncementModal />
+      <ClickSpark
+        sparkColor="#f97316"
+        sparkSize={8}
+        sparkRadius={12}
+        sparkCount={6}
+        duration={500}
+      >
+        <AppRoutes />
       </ClickSpark>
     </Router>
   );

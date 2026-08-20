@@ -84,7 +84,7 @@ export const Header = () => {
 
           <div className="flex-1 flex justify-end items-center gap-4">
             <ThemeToggle />
-            <form onSubmit={handleSearch} className="relative">
+            <form onSubmit={handleSearch} className="relative hidden md:block">
               <input
                 type="text"
                 placeholder="搜索文章..."
@@ -96,7 +96,7 @@ export const Header = () => {
             </form>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <Link
                   to="/admin/articles/new"
                   className="flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
@@ -129,7 +129,7 @@ export const Header = () => {
                 </Link>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-3">
                 <Link
                   to="/login"
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -151,8 +151,10 @@ export const Header = () => {
           </div>
 
           <button
-            className="md:hidden p-2 rounded-lg"
+            className="md:hidden min-w-11 min-h-11 p-2 rounded-lg flex items-center justify-center"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label={isMobileMenuOpen ? '关闭导航菜单' : '打开导航菜单'}
+            aria-expanded={isMobileMenuOpen}
           >
             {isMobileMenuOpen ? (
               <X className={`w-6 h-6 ${showOpaque ? 'text-gray-700' : 'text-white'}`} />
@@ -164,33 +166,33 @@ export const Header = () => {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t">
+        <div className="mobile-navigation-menu md:hidden bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700">
           <div className="container mx-auto px-4 py-4">
             <nav className="flex flex-col gap-2">
               <Link
                 to="/"
-                className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+                className="px-4 py-3 font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 首页
               </Link>
               <Link
                 to="/articles/category/all"
-                className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+                className="px-4 py-3 font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 分类
               </Link>
               <Link
                 to="/articles/tag/all"
-                className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+                className="px-4 py-3 font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 标签
               </Link>
               <Link
                 to="/notes"
-                className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+                className="px-4 py-3 font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 笔记
@@ -248,7 +250,7 @@ export const Header = () => {
               <div className="mt-4 flex flex-col gap-2">
                 <Link
                   to="/login"
-                  className="px-4 py-2 font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="px-4 py-3 font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   登录

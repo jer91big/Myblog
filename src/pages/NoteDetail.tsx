@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, User, ArrowLeft, Tag, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ArticleToc } from '../components/ArticleToc';
+import { CodeBlock } from '../components/CodeBlock';
+import { ReadingProgress } from '../components/ReadingProgress';
 import { noteApi } from '../api';
 import { Note } from '../types';
+import { useArticleReading } from '../hooks/useArticleReading';
 
 export const NoteDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [note, setNote] = useState<Note | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { headings, activeId } = useArticleReading(contentRef);
 
   useEffect(() => {
     if (!id) return;
@@ -78,9 +84,11 @@ export const NoteDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ReadingProgress contentRef={contentRef} />
       <main className="container mx-auto px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <Link
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+          <div className="min-w-0 lg:col-span-8">
+            <Link
             to="/notes"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-accent-500 transition-colors mb-8"
           >
@@ -89,7 +97,7 @@ export const NoteDetail = () => {
           </Link>
 
           <article className="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div className="p-6 md:p-10">
+            <div className="p-5 sm:p-6 md:p-10">
               {note.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {note.tags.map((tag, i) => (
@@ -101,11 +109,11 @@ export const NoteDetail = () => {
                 </div>
               )}
 
-              <h1 className="font-display text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              <h1 className="font-display text-3xl sm:text-4xl font-bold text-gray-900 mb-6 break-words">
                 {note.title}
               </h1>
 
-              <div className="flex items-center gap-4 mb-8 text-sm text-gray-500">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   {formatDate(note.publishedAt)}
@@ -118,29 +126,34 @@ export const NoteDetail = () => {
                 )}
                 <button
                   onClick={handleDownload}
-                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-accent-500 border border-accent-500 hover:text-white hover:bg-accent-500 transition-colors"
+                  className="note-download-button sm:ml-auto min-h-11 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-accent-500 border border-accent-500 hover:text-white hover:bg-accent-500 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   下载 .md
                 </button>
               </div>
 
-              <div className="article-content">
+              <div ref={contentRef} className="article-content">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
+                    h1: ({ children }) => <h1>{children}</h1>,
+                    h2: ({ children }) => <h2>{children}</h2>,
+                    h3: ({ children }) => <h3>{children}</h3>,
                     code: ({ className, children, ...props }: any) => {
-                      const isInline = !className;
-                      if (isInline) {
-                        return <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>;
-                      }
+                      const language = className?.match(/language-([\w-]+)/)?.[1];
                       return (
-                        <pre className="bg-gray-900 text-white p-4 rounded-lg overflow-x-auto my-4">
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        </pre>
+                        <code className={className || 'bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono'} {...props}>
+                          {children}
+                        </code>
                       );
+                    },
+                    pre: ({ children }: any) => {
+                      const codeElement = Array.isArray(children) ? children[0] : children;
+                      const className = codeElement?.props?.className || '';
+                      const language = className.match(/language-([\w-]+)/)?.[1];
+                      const code = String(codeElement?.props?.children ?? '').replace(/\n$/, '');
+                      return <CodeBlock code={code} language={language}>{codeElement?.props?.children}</CodeBlock>;
                     },
                   }}
                 >
@@ -149,6 +162,10 @@ export const NoteDetail = () => {
               </div>
             </div>
           </article>
+          </div>
+          <aside className="min-w-0 lg:col-span-4">
+            <ArticleToc headings={headings} activeId={activeId} />
+          </aside>
         </div>
       </main>
     </div>
