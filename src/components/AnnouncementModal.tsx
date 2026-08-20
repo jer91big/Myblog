@@ -3,7 +3,7 @@ import ElectricBorder from './ElectricBorder';
 import StarBorder from './StarBorder';
 import './AnnouncementModal.css';
 
-const STORAGE_KEY = 'announcement-dismissed-v2';
+const STORAGE_KEY = 'announcement-dismissed-v3';
 
 // 公告弹窗：AI 制作的欢迎公告（勾选"今天不再弹出"后当天不再显示）
 export const AnnouncementModal = () => {
@@ -46,24 +46,27 @@ export const AnnouncementModal = () => {
             <p className="mt-4 text-gray-700 dark:text-gray-300 leading-relaxed">
               这个网站由 <span className="font-semibold text-accent-500">AI 制作</span>，
               是一个功能完整的小型博客，<span className="font-medium text-gray-900 dark:text-white">主要面向 PC 端</span>，
-              建议使用电脑浏览器访问以获得最佳体验，包含：
+              建议使用电脑浏览器访问以获得最佳体验。
             </p>
 
-            <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-3 text-sm font-medium text-accent-500 dark:text-accent-400">
+              ✨ 最新更新：全新 GSAP 动画系统
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
               <li className="flex items-start gap-2">
-                <span>📝</span><span>发表 Markdown 文章与笔记</span>
+                <span>🎨</span><span>Hero 标题逐字旋转入场 + 视差滚动</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>📚</span><span>文章目录、阅读进度与标题锚点</span>
+                <span>🪄</span><span>文章/笔记卡片滚动 stagger 入场动画</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>💻</span><span>代码块一键复制</span>
+                <span>💫</span><span>卡片 Hover 上浮缩放 + 图片微放大</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>🎵</span><span>网易云音乐歌单在线播放</span>
+                <span>📖</span><span>文章内容逐段滚动淡入，沉浸式阅读</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>💬</span><span>自由评论与夜间模式切换</span>
+                <span>❤️</span><span>点赞弹性心跳 + 主题切换旋转动画</span>
               </li>
             </ul>
 
