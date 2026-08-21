@@ -390,6 +390,58 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.8125rem;
 }
 
+.article-toc-toggle {
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0;
+}
+
+.article-toc-toggle:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}
+
+.article-toc-toggle:hover .toc-toggle-icon {
+  color: #f97316;
+}
+
+.share-menu {
+  animation: share-menu-in 0.2s ease-out;
+}
+
+@keyframes share-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dark .share-menu {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .share-menu button:hover {
+  background: #334155;
+}
+
+@media (max-width: 1023px) {
+  .article-toc {
+    position: static;
+    margin-bottom: 1.5rem;
+  }
+
+  .article-toc-list {
+    max-height: 14rem;
+  }
+}
+
 .code-block-wrapper {
   margin: 1rem 0;
   overflow: hidden;
@@ -492,17 +544,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .dark .code-copy-button:hover {
   background: #334155;
-}
-
-@media (max-width: 1023px) {
-  .article-toc {
-    position: static;
-    margin-bottom: 1.5rem;
-  }
-
-  .article-toc-list {
-    max-height: 14rem;
-  }
 }
 
 @media (max-width: 640px) {
