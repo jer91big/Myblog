@@ -3,7 +3,7 @@ import ElectricBorder from './ElectricBorder';
 import StarBorder from './StarBorder';
 import './AnnouncementModal.css';
 
-const STORAGE_KEY = 'announcement-dismissed-v3';
+const STORAGE_KEY = 'announcement-dismissed-v4';
 
 // 公告弹窗：AI 制作的欢迎公告（勾选"今天不再弹出"后当天不再显示）
 export const AnnouncementModal = () => {
@@ -50,23 +50,23 @@ export const AnnouncementModal = () => {
             </p>
 
             <p className="mt-3 text-sm font-medium text-accent-500 dark:text-accent-400">
-              ✨ 最新更新：全新 GSAP 动画系统
+              ✨ 最新更新：笔记文件夹 + 阅读体验升级
             </p>
             <ul className="mt-2 space-y-1.5 text-sm text-gray-600 dark:text-gray-400">
               <li className="flex items-start gap-2">
-                <span>🎨</span><span>Hero 标题逐字旋转入场 + 视差滚动</span>
+                <span>📁</span><span>笔记支持文件夹分类与筛选</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>🪄</span><span>文章/笔记卡片滚动 stagger 入场动画</span>
+                <span>📤</span><span>笔记可分享（复制链接 / 微博 / Twitter / QQ）</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>💫</span><span>卡片 Hover 上浮缩放 + 图片微放大</span>
+                <span>📑</span><span>目录支持折叠，长文导航更清爽</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>📖</span><span>文章内容逐段滚动淡入，沉浸式阅读</span>
+                <span>⏱️</span><span>笔记显示预估阅读时间</span>
               </li>
               <li className="flex items-start gap-2">
-                <span>❤️</span><span>点赞弹性心跳 + 主题切换旋转动画</span>
+                <span>🎨</span><span>全站 GSAP 滚动动画与视差效果</span>
               </li>
             </ul>
 
