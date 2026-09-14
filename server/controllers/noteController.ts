@@ -26,8 +26,15 @@ export const getNotes = async (
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
     const status = req.query.status as string;
+    const folderId = req.query.folderId as string;
 
     const query: any = {};
+
+    if (folderId === 'null') {
+      query.folderId = null;
+    } else if (folderId) {
+      query.folderId = folderId;
+    }
 
     if (status === 'all' || !status) {
       if (!req.user || req.user.role !== 'admin') {
@@ -54,6 +61,7 @@ export const getNotes = async (
           excerpt: note.excerpt || note.content.substring(0, 200),
           tags: note.tags,
           author: note.authorId as any,
+          folderId: note.folderId?.toString() || null,
           status: note.status,
           views: note.views,
           publishedAt: note.publishedAt,
@@ -106,6 +114,7 @@ export const getNoteById = async (
         excerpt: note.excerpt,
         tags: note.tags,
         author: note.authorId as any,
+        folderId: note.folderId?.toString() || null,
         status: note.status,
         views: note.views,
         publishedAt: note.publishedAt,

@@ -1,22 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Calendar, Tag } from 'lucide-react';
+import { BookOpen, Calendar, Tag, Folder } from 'lucide-react';
 import { noteApi } from '../api';
-import { Note } from '../types';
+import { Note, NoteFolder } from '../types';
 import BorderGlow from '../components/BorderGlow';
 import { Pagination } from '../components/Pagination';
 import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 export const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<NoteFolder[]>([]);
+  const [activeFolderId, setActiveFolderId] = useState<string | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const notesGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    fetchFolders();
+  }, []);
+
+  useEffect(() => {
     fetchNotes();
-  }, [currentPage]);
+  }, [currentPage, activeFolderId]);
 
   // 笔记卡片 stagger 入场
   useEffect(() => {
@@ -46,10 +52,25 @@ export const Notes = () => {
     return () => trigger.kill();
   }, [isLoading, notes]);
 
+  const fetchFolders = async () => {
+    try {
+      const response = await noteApi.getFolders();
+      if (response.success && response.data) {
+        setFolders(response.data.folders);
+      }
+    } catch (error) {
+      console.error('Failed to fetch folders:', error);
+    }
+  };
+
   const fetchNotes = async () => {
     setIsLoading(true);
     try {
-      const response = await noteApi.getNotes({ page: currentPage, limit: 12 });
+      const params: any = { page: currentPage, limit: 12 };
+      if (activeFolderId) {
+        params.folderId = activeFolderId;
+      }
+      const response = await noteApi.getNotes(params);
       if (response.success && response.data) {
         setNotes(response.data.notes);
         setTotalPages(response.data.pagination.pages);
@@ -59,6 +80,11 @@ export const Notes = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFolderChange = (folderId: string | undefined) => {
+    setActiveFolderId(folderId);
+    setCurrentPage(1);
   };
 
   const formatDate = (dateString: string | null) => {
@@ -96,6 +122,41 @@ export const Notes = () => {
           </div>
         </div>
       </section>
+
+      {/* Folder filter tabs */}
+      {folders.length > 0 && (
+        <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center gap-2 py-3 overflow-x-auto scrollbar-hide">
+              <button
+                onClick={() => handleFolderChange(undefined)}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                  activeFolderId === undefined
+                    ? 'bg-accent-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                全部
+              </button>
+              {folders.map((folder) => (
+                <button
+                  key={folder.id}
+                  onClick={() => handleFolderChange(folder.id)}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                    activeFolderId === folder.id
+                      ? 'bg-accent-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Folder className="w-3.5 h-3.5" />
+                  {folder.name}
+                  <span className="text-xs opacity-70">({folder.noteCount})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="container mx-auto px-4 py-12">
         {notes.length > 0 ? (
@@ -152,7 +213,9 @@ export const Notes = () => {
           <div className="text-center py-20">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">暂无笔记</h3>
-            <p className="text-gray-400">还没有发布任何笔记</p>
+            <p className="text-gray-400">
+              {activeFolderId ? '该文件夹下暂无笔记' : '还没有发布任何笔记'}
+            </p>
           </div>
         )}
       </main>

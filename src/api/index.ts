@@ -5,6 +5,7 @@ import {
   Tag,
   Comment,
   Note,
+  NoteFolder,
   AuthResponse,
   ApiResponse,
   ArticleListResponse,
@@ -464,6 +465,7 @@ export const noteApi = {
     page?: number;
     limit?: number;
     status?: string;
+    folderId?: string;
   }): Promise<ApiResponse<{ notes: Note[]; pagination: any }>> => {
     const response = await authFetch(buildUrl('/notes', params), {
       method: 'GET',
@@ -510,6 +512,49 @@ export const noteApi = {
     const response = await authFetch(`${API_BASE_URL}/notes/${id}`, {
       method: 'DELETE',
       headers: headers(),
+    });
+    return response.json();
+  },
+
+  getFolders: async (): Promise<ApiResponse<{ folders: NoteFolder[]; unfiledCount: number }>> => {
+    const response = await authFetch(`${API_BASE_URL}/note-folders`, {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+
+  createFolder: async (name: string): Promise<ApiResponse<NoteFolder>> => {
+    const response = await authFetch(`${API_BASE_URL}/note-folders`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ name }),
+    });
+    return response.json();
+  },
+
+  renameFolder: async (id: string, name: string): Promise<ApiResponse<NoteFolder>> => {
+    const response = await authFetch(`${API_BASE_URL}/note-folders/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify({ name }),
+    });
+    return response.json();
+  },
+
+  deleteFolder: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await authFetch(`${API_BASE_URL}/note-folders/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    });
+    return response.json();
+  },
+
+  moveNoteToFolder: async (noteId: string, folderId: string | null): Promise<ApiResponse<void>> => {
+    const response = await authFetch(`${API_BASE_URL}/notes/${noteId}/move`, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify({ folderId }),
     });
     return response.json();
   },

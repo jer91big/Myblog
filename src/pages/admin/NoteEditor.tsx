@@ -4,6 +4,7 @@ import { Save, Eye, AlertCircle, Upload } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { noteApi } from '../../api';
+import { NoteFolder } from '../../types';
 
 export const NoteEditor = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,6 +13,9 @@ export const NoteEditor = () => {
   const [content, setContent] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
+  const [folderId, setFolderId] = useState<string>('');
+  const [originalFolderId, setOriginalFolderId] = useState<string>('');
+  const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -43,10 +47,22 @@ export const NoteEditor = () => {
   };
 
   useEffect(() => {
+    fetchFolders();
     if (id) {
       fetchNote();
     }
   }, [id]);
+
+  const fetchFolders = async () => {
+    try {
+      const response = await noteApi.getFolders();
+      if (response.success && response.data) {
+        setFolders(response.data.folders);
+      }
+    } catch (error) {
+      console.error('Failed to fetch folders:', error);
+    }
+  };
 
   const fetchNote = async () => {
     try {
@@ -57,6 +73,8 @@ export const NoteEditor = () => {
         setContent(note.content);
         setTagsInput(note.tags.join(', '));
         setStatus(note.status);
+        setFolderId(note.folderId || '');
+        setOriginalFolderId(note.folderId || '');
       }
     } catch (error) {
       console.error('Failed to fetch note:', error);
@@ -99,6 +117,14 @@ export const NoteEditor = () => {
       if (!response.success) {
         setSaveError(response.message || '保存失败，请重试');
         return;
+      }
+
+      // Move to folder if changed
+      const savedNoteId = id || response.data?.id;
+      const targetFolderId = folderId || null;
+      const origFolderId = originalFolderId || null;
+      if (savedNoteId && targetFolderId !== origFolderId) {
+        await noteApi.moveNoteToFolder(savedNoteId, targetFolderId);
       }
 
       navigate('/admin/notes');
@@ -237,6 +263,21 @@ export const NoteEditor = () => {
                 发布
               </button>
             </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+            <h3 className="font-semibold mb-4">文件夹</h3>
+            <select
+              value={folderId}
+              onChange={(e) => setFolderId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-accent-500 focus:outline-none"
+            >
+              <option value="">未归档</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-2">选择笔记所属的文件夹</p>
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ export interface INote extends Document {
   content: string;
   excerpt: string;
   authorId: Types.ObjectId;
+  folderId: Types.ObjectId | null;
   tags: string[];
   status: 'published' | 'draft';
   views: number;
@@ -32,6 +33,11 @@ const NoteSchema: Schema<INote> = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    folderId: {
+      type: Schema.Types.ObjectId,
+      ref: 'NoteFolder',
+      default: null,
     },
     tags: {
       type: [{ type: String }],

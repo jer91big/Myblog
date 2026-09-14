@@ -90,6 +90,13 @@ export interface CommentListResponse {
   pagination: Pagination;
 }
 
+export interface NoteFolder {
+  id: string;
+  name: string;
+  noteCount: number;
+  createdAt: string;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -97,6 +104,7 @@ export interface Note {
   excerpt: string;
   tags: string[];
   author: User;
+  folderId?: string | null;
   status: 'published' | 'draft';
   views: number;
   publishedAt: string | null;
