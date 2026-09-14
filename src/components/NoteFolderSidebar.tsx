@@ -1,138 +1,377 @@
-import { useState } from 'react';
-import { Folder, FolderOpen, Plus, Edit2, Trash2, FileText, Check, X } from 'lucide-react';
-import { useDroppable } from '@dnd-kit/core';
-import { NoteFolder } from '../types';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Edit2,
+  FileText,
+  Folder,
+  FolderInput,
+  FolderOpen,
+  GripVertical,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { FolderNode } from '../lib/folderTree';
+
+export type DragType = 'note' | 'folder' | null;
 
 interface NoteFolderSidebarProps {
-  folders: NoteFolder[];
+  nodes: FolderNode[];
   unfiledCount: number;
   totalNotes: number;
-  activeFolderId: string | null | undefined; // null = unfiled, undefined = all
+  /** undefined = 全部, null = 未归档, string = 具体文件夹 */
+  activeFolderId: string | null | undefined;
+  expandedIds: Set<string>;
+  dragType: DragType;
+  /** 当前拖拽悬停的目标：'all' | 'unfiled' | 文件夹 id | null */
+  isOver: string | null;
   onSelectFolder: (folderId: string | null | undefined) => void;
-  onCreateFolder: (name: string) => void;
+  onCreateFolder: (name: string, parentId: string | null) => void;
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
-  isOver: string | null; // folder id being dragged over
+  onToggleExpand: (id: string) => void;
+  onExpand: (id: string) => void;
 }
 
-function DroppableFolder({
-  folder,
-  isActive,
-  isOver,
-  onSelect,
-  onRename,
-  onDelete,
-}: {
-  folder: NoteFolder;
-  isActive: boolean;
-  isOver: boolean;
-  onSelect: () => void;
-  onRename: (name: string) => void;
-  onDelete: () => void;
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(folder.name);
-  const { setNodeRef } = useDroppable({ id: `folder-${folder.id}` });
+const HOVER_EXPAND_DELAY = 700;
 
-  const handleRename = () => {
+interface FolderTreeItemProps {
+  node: FolderNode;
+  activeFolderId: string | null | undefined;
+  expandedIds: Set<string>;
+  isOver: string | null;
+  childInputParentId: string | null;
+  childName: string;
+  onChildNameChange: (value: string) => void;
+  onSubmitChild: () => void;
+  onCancelChild: () => void;
+  onSelectFolder: (folderId: string) => void;
+  onRenameFolder: (id: string, name: string) => void;
+  onDeleteFolder: (id: string) => void;
+  onToggleExpand: (id: string) => void;
+  onExpand: (id: string) => void;
+  onStartChild: (id: string) => void;
+}
+
+function FolderTreeItem({
+  node,
+  activeFolderId,
+  expandedIds,
+  isOver,
+  childInputParentId,
+  childName,
+  onChildNameChange,
+  onSubmitChild,
+  onCancelChild,
+  onSelectFolder,
+  onRenameFolder,
+  onDeleteFolder,
+  onToggleExpand,
+  onExpand,
+  onStartChild,
+}: FolderTreeItemProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(node.name);
+
+  const hasChildren = node.children.length > 0;
+  const isExpanded = expandedIds.has(node.id);
+  const isActive = activeFolderId === node.id;
+  const isOverThis = isOver === node.id;
+
+  const { setNodeRef: setDropRef } = useDroppable({
+    id: `folder-${node.id}`,
+    data: { type: 'folder-target', folderId: node.id },
+  });
+  const {
+    setNodeRef: setDragRef,
+    setActivatorNodeRef,
+    attributes,
+    listeners,
+    isDragging,
+  } = useDraggable({
+    id: `folder-${node.id}`,
+    data: { type: 'folder', folder: node },
+  });
+
+  const setRefs = useCallback(
+    (element: HTMLElement | null) => {
+      setDropRef(element);
+      setDragRef(element);
+    },
+    [setDropRef, setDragRef]
+  );
+
+  // 拖拽悬停一段时间后自动展开，便于拖进深层文件夹
+  useEffect(() => {
+    if (!isOverThis || isExpanded || !hasChildren || isEditing) return;
+    const timer = window.setTimeout(() => onExpand(node.id), HOVER_EXPAND_DELAY);
+    return () => window.clearTimeout(timer);
+  }, [isOverThis, isExpanded, hasChildren, isEditing, node.id, onExpand]);
+
+  const commitRename = () => {
     const trimmed = editName.trim();
-    if (trimmed && trimmed !== folder.name) {
-      onRename(trimmed);
+    if (trimmed && trimmed !== node.name) {
+      onRenameFolder(node.id, trimmed);
     }
     setIsEditing(false);
-    setEditName(folder.name);
+    setEditName(node.name);
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      onClick={() => !isEditing && onSelect()}
-      className={`
-        group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200
-        ${isActive ? 'bg-accent-50 text-accent-700 border border-accent-200' : 'hover:bg-gray-50 text-gray-700'}
-        ${isOver ? 'bg-accent-100 ring-2 ring-accent-400 scale-[1.02]' : ''}
-      `}
-    >
-      {isActive ? (
-        <FolderOpen className="w-4 h-4 flex-shrink-0" />
-      ) : (
-        <Folder className="w-4 h-4 flex-shrink-0" />
-      )}
-      {isEditing ? (
-        <div className="flex items-center gap-1 flex-1 min-w-0">
+    <div>
+      <div
+        ref={setRefs}
+        onClick={() => !isEditing && onSelectFolder(node.id)}
+        style={{ paddingLeft: 8 + node.depth * 14 }}
+        className={`
+          group flex items-center gap-1.5 pr-2 py-2 rounded-lg cursor-pointer transition-all duration-200
+          ${isActive ? 'bg-accent-50 text-accent-700 border border-accent-200' : 'hover:bg-gray-50 text-gray-700'}
+          ${isOverThis ? 'bg-accent-100 ring-2 ring-accent-400' : ''}
+          ${isDragging ? 'opacity-40' : ''}
+        `}
+      >
+        {/* 展开/折叠 */}
+        {hasChildren ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand(node.id);
+            }}
+            className="p-0.5 text-gray-400 hover:text-gray-600 rounded flex-shrink-0"
+          >
+            {isExpanded ? (
+              <ChevronDown className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5" />
+            )}
+          </button>
+        ) : (
+          <span className="w-4 flex-shrink-0" />
+        )}
+
+        {/* 拖拽手柄 */}
+        {!isEditing && (
+          <button
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-gray-500 cursor-grab active:cursor-grabbing rounded flex-shrink-0"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {isActive ? (
+          <FolderOpen className="w-4 h-4 flex-shrink-0" />
+        ) : (
+          <Folder className="w-4 h-4 flex-shrink-0" />
+        )}
+
+        {isEditing ? (
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitRename();
+                if (e.key === 'Escape') {
+                  setIsEditing(false);
+                  setEditName(node.name);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 min-w-0 px-1 py-0.5 text-sm border border-accent-300 rounded focus:outline-none"
+              autoFocus
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                commitRename();
+              }}
+              className="p-0.5 text-green-600 hover:bg-green-50 rounded"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(false);
+                setEditName(node.name);
+              }}
+              className="p-0.5 text-gray-400 hover:bg-gray-100 rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <span className="flex-1 text-sm font-medium truncate">{node.name}</span>
+            <span className="text-xs text-gray-400 flex-shrink-0">
+              {node.noteCount}
+            </span>
+            <div className="hidden group-hover:flex items-center gap-0.5 flex-shrink-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartChild(node.id);
+                }}
+                title="新建子文件夹"
+                className="p-0.5 text-gray-400 hover:text-accent-600 rounded"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditName(node.name);
+                  setIsEditing(true);
+                }}
+                title="重命名"
+                className="p-0.5 text-gray-400 hover:text-accent-600 rounded"
+              >
+                <Edit2 className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteFolder(node.id);
+                }}
+                title="删除"
+                className="p-0.5 text-gray-400 hover:text-red-600 rounded"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 子层级：内联新建输入框 + 子文件夹 */}
+      {childInputParentId === node.id && (
+        <div
+          style={{ paddingLeft: 8 + (node.depth + 1) * 14 }}
+          className="flex items-center gap-1 pr-2 py-1.5"
+        >
           <input
             type="text"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
+            value={childName}
+            onChange={(e) => onChildNameChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleRename();
-              if (e.key === 'Escape') { setIsEditing(false); setEditName(folder.name); }
+              if (e.key === 'Enter') onSubmitChild();
+              if (e.key === 'Escape') onCancelChild();
             }}
-            onClick={(e) => e.stopPropagation()}
-            className="flex-1 min-w-0 px-1 py-0.5 text-sm border border-accent-300 rounded focus:outline-none"
+            placeholder="子文件夹名称"
+            className="flex-1 min-w-0 px-2 py-1 text-sm border border-accent-300 rounded focus:outline-none"
             autoFocus
           />
-          <button onClick={(e) => { e.stopPropagation(); handleRename(); }} className="p-0.5 text-green-600 hover:bg-green-50 rounded">
+          <button
+            onClick={onSubmitChild}
+            className="p-1 text-green-600 hover:bg-green-50 rounded"
+          >
             <Check className="w-3.5 h-3.5" />
           </button>
-          <button onClick={(e) => { e.stopPropagation(); setIsEditing(false); setEditName(folder.name); }} className="p-0.5 text-gray-400 hover:bg-gray-100 rounded">
+          <button
+            onClick={onCancelChild}
+            className="p-1 text-gray-400 hover:bg-gray-100 rounded"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
-      ) : (
-        <>
-          <span className="flex-1 text-sm font-medium truncate">{folder.name}</span>
-          <span className="text-xs text-gray-400 flex-shrink-0">{folder.noteCount}</span>
-          <div className="hidden group-hover:flex items-center gap-0.5 flex-shrink-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); setEditName(folder.name); setIsEditing(true); }}
-              className="p-0.5 text-gray-400 hover:text-accent-600 rounded"
-            >
-              <Edit2 className="w-3 h-3" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-0.5 text-gray-400 hover:text-red-600 rounded"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
-        </>
+      )}
+
+      {hasChildren && isExpanded && (
+        <div>
+          {node.children.map((child) => (
+            <FolderTreeItem
+              key={child.id}
+              node={child}
+              activeFolderId={activeFolderId}
+              expandedIds={expandedIds}
+              isOver={isOver}
+              childInputParentId={childInputParentId}
+              childName={childName}
+              onChildNameChange={onChildNameChange}
+              onSubmitChild={onSubmitChild}
+              onCancelChild={onCancelChild}
+              onSelectFolder={onSelectFolder}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
+              onToggleExpand={onToggleExpand}
+              onExpand={onExpand}
+              onStartChild={onStartChild}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
 export const NoteFolderSidebar = ({
-  folders,
+  nodes,
   unfiledCount,
   totalNotes,
   activeFolderId,
+  expandedIds,
+  dragType,
+  isOver,
   onSelectFolder,
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
-  isOver,
+  onToggleExpand,
+  onExpand,
 }: NoteFolderSidebarProps) => {
-  const [showNewFolder, setShowNewFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const { setNodeRef: setAllRef } = useDroppable({ id: 'folder-all' });
-  const { setNodeRef: setUnfiledRef } = useDroppable({ id: 'folder-unfiled' });
+  const [showRootInput, setShowRootInput] = useState(false);
+  const [rootName, setRootName] = useState('');
+  const [childInputParentId, setChildInputParentId] = useState<string | null>(null);
+  const [childName, setChildName] = useState('');
 
-  const handleCreate = () => {
-    const trimmed = newFolderName.trim();
+  const { setNodeRef: setAllRef } = useDroppable({
+    id: 'folder-all',
+    data: { type: 'all-target' },
+  });
+  const { setNodeRef: setUnfiledRef } = useDroppable({
+    id: 'folder-unfiled',
+    data: { type: 'unfiled-target' },
+  });
+
+  const isFolderDrag = dragType === 'folder';
+
+  const submitRoot = () => {
+    const trimmed = rootName.trim();
     if (trimmed) {
-      onCreateFolder(trimmed);
-      setNewFolderName('');
-      setShowNewFolder(false);
+      onCreateFolder(trimmed, null);
+      setRootName('');
+      setShowRootInput(false);
     }
   };
 
-  return (
-    <div className="bg-white rounded-xl shadow-md p-4 space-y-1">
-      <h3 className="font-semibold text-gray-800 text-sm mb-3 px-1">文件夹</h3>
+  const submitChild = () => {
+    const trimmed = childName.trim();
+    if (trimmed && childInputParentId) {
+      onCreateFolder(trimmed, childInputParentId);
+      setChildName('');
+      setChildInputParentId(null);
+    }
+  };
 
-      {/* All notes */}
+  const startChild = (parentId: string) => {
+    onExpand(parentId);
+    setChildInputParentId(parentId);
+    setChildName('');
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-md p-3 space-y-0.5">
+      <h3 className="font-semibold text-gray-800 text-sm mb-2 px-1">文件夹</h3>
+
+      {/* 全部笔记：拖拽文件夹时可作为「移到根目录」的目标 */}
       <div
         ref={setAllRef}
         onClick={() => onSelectFolder(undefined)}
@@ -142,12 +381,18 @@ export const NoteFolderSidebar = ({
           ${isOver === 'all' ? 'bg-accent-100 ring-2 ring-accent-400' : ''}
         `}
       >
-        <FileText className="w-4 h-4" />
-        <span className="flex-1 text-sm font-medium">全部笔记</span>
+        {isFolderDrag ? (
+          <FolderInput className="w-4 h-4" />
+        ) : (
+          <FileText className="w-4 h-4" />
+        )}
+        <span className="flex-1 text-sm font-medium">
+          {isFolderDrag ? '移到顶层' : '全部笔记'}
+        </span>
         <span className="text-xs text-gray-400">{totalNotes}</span>
       </div>
 
-      {/* Unfiled */}
+      {/* 未归档 */}
       <div
         ref={setUnfiledRef}
         onClick={() => onSelectFolder(null)}
@@ -162,46 +407,69 @@ export const NoteFolderSidebar = ({
         <span className="text-xs text-gray-400">{unfiledCount}</span>
       </div>
 
-      {folders.length > 0 && <div className="border-t border-gray-100 my-2" />}
+      {nodes.length > 0 && <div className="border-t border-gray-100 my-2" />}
 
-      {/* Folder list */}
-      {folders.map((folder) => (
-        <DroppableFolder
-          key={folder.id}
-          folder={folder}
-          isActive={activeFolderId === folder.id}
-          isOver={isOver === folder.id}
-          onSelect={() => onSelectFolder(folder.id)}
-          onRename={(name) => onRenameFolder(folder.id, name)}
-          onDelete={() => onDeleteFolder(folder.id)}
+      {nodes.map((node) => (
+        <FolderTreeItem
+          key={node.id}
+          node={node}
+          activeFolderId={activeFolderId}
+          expandedIds={expandedIds}
+          isOver={isOver}
+          childInputParentId={childInputParentId}
+          childName={childName}
+          onChildNameChange={setChildName}
+          onSubmitChild={submitChild}
+          onCancelChild={() => {
+            setChildInputParentId(null);
+            setChildName('');
+          }}
+          onSelectFolder={(id) => onSelectFolder(id)}
+          onRenameFolder={onRenameFolder}
+          onDeleteFolder={onDeleteFolder}
+          onToggleExpand={onToggleExpand}
+          onExpand={onExpand}
+          onStartChild={startChild}
         />
       ))}
 
-      {/* New folder input */}
-      {showNewFolder ? (
+      {/* 顶层新建文件夹 */}
+      {showRootInput ? (
         <div className="flex items-center gap-1 mt-1">
           <input
             type="text"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
+            value={rootName}
+            onChange={(e) => setRootName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate();
-              if (e.key === 'Escape') { setShowNewFolder(false); setNewFolderName(''); }
+              if (e.key === 'Enter') submitRoot();
+              if (e.key === 'Escape') {
+                setShowRootInput(false);
+                setRootName('');
+              }
             }}
             placeholder="文件夹名称"
             className="flex-1 min-w-0 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-accent-500 focus:outline-none"
             autoFocus
           />
-          <button onClick={handleCreate} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg">
+          <button
+            onClick={submitRoot}
+            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg"
+          >
             <Check className="w-4 h-4" />
           </button>
-          <button onClick={() => { setShowNewFolder(false); setNewFolderName(''); }} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
+          <button
+            onClick={() => {
+              setShowRootInput(false);
+              setRootName('');
+            }}
+            className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
       ) : (
         <button
-          onClick={() => setShowNewFolder(true)}
+          onClick={() => setShowRootInput(true)}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-500 hover:text-accent-600 hover:bg-gray-50 rounded-lg transition-colors mt-1"
         >
           <Plus className="w-4 h-4" />

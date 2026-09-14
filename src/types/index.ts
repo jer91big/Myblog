@@ -93,6 +93,8 @@ export interface CommentListResponse {
 export interface NoteFolder {
   id: string;
   name: string;
+  parentId: string | null;
+  /** 递归计数：自身 + 全部子孙文件夹的笔记数 */
   noteCount: number;
   createdAt: string;
 }

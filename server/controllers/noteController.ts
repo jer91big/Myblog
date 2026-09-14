@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Note } from '../models/Note.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import {
+  collectSubtreeIds,
+  loadFolderParentMap,
+} from '../utils/folderTree.js';
 
 const createNoteSchema = z.object({
   title: z.string().min(1),
@@ -33,7 +37,9 @@ export const getNotes = async (
     if (folderId === 'null') {
       query.folderId = null;
     } else if (folderId) {
-      query.folderId = folderId;
+      // 选中父文件夹时连同其所有子文件夹的笔记一起显示
+      const parentOf = await loadFolderParentMap();
+      query.folderId = { $in: collectSubtreeIds(parentOf, folderId) };
     }
 
     if (status === 'all' || !status) {

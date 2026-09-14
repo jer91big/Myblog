@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Plus, Edit, Trash2, Eye, Clock, Search, Filter, GripVertical, FolderInput,
+  Plus, Edit, Trash2, Eye, Clock, Search, Filter, GripVertical, FolderInput, Folder,
 } from 'lucide-react';
 import {
   DndContext, DragOverlay, useSensor, useSensors, PointerSensor,
@@ -11,6 +11,15 @@ import { useDraggable } from '@dnd-kit/core';
 import { noteApi } from '../../api';
 import { Note, NoteFolder } from '../../types';
 import { NoteFolderSidebar } from '../../components/NoteFolderSidebar';
+import {
+  buildFolderTree,
+  collectDescendantIds,
+  getAncestorIds,
+} from '../../lib/folderTree';
+
+type DragItem =
+  | { type: 'note'; note: Note }
+  | { type: 'folder'; folder: NoteFolder };
 
 function DraggableNoteRow({
   note,
@@ -54,39 +63,56 @@ export const NoteManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeDragNote, setActiveDragNote] = useState<Note | null>(null);
+  const [activeDragItem, setActiveDragItem] = useState<DragItem | null>(null);
   const [overFolderId, setOverFolderId] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  useEffect(() => {
-    fetchFolders();
+  const folderTree = useMemo(() => buildFolderTree(folders), [folders]);
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
 
-  useEffect(() => {
-    fetchNotes();
-  }, [currentPage, filterStatus, activeFolderId]);
+  const expandIds = useCallback((ids: string[]) => {
+    setExpandedIds((prev) => {
+      const missing = ids.filter((id) => !prev.has(id));
+      if (missing.length === 0) return prev;
+      return new Set([...prev, ...missing]);
+    });
+  }, []);
 
-  const fetchFolders = async () => {
+  const fetchFolders = useCallback(async () => {
     try {
       const response = await noteApi.getFolders();
       if (response.success && response.data) {
         setFolders(response.data.folders);
         setUnfiledCount(response.data.unfiledCount);
-        const total = response.data.folders.reduce((sum, f) => sum + f.noteCount, 0) + response.data.unfiledCount;
-        setTotalNotes(total);
+        // 递归计数由服务端汇总，客户端直接采用避免重复累加
+        setTotalNotes(response.data.totalNotes);
       }
     } catch (error) {
       console.error('Failed to fetch folders:', error);
     }
-  };
+  }, []);
 
-  const fetchNotes = async () => {
+  const fetchNotes = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params: any = { page: currentPage, limit: 10, status: filterStatus };
+      const params: {
+        page: number;
+        limit: number;
+        status: string;
+        folderId?: string;
+      } = { page: currentPage, limit: 10, status: filterStatus };
       if (activeFolderId === null) {
         params.folderId = 'null';
       } else if (activeFolderId) {
@@ -102,7 +128,21 @@ export const NoteManagement = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, filterStatus, activeFolderId]);
+
+  useEffect(() => {
+    fetchFolders();
+  }, [fetchFolders]);
+
+  useEffect(() => {
+    fetchNotes();
+  }, [fetchNotes]);
+
+  // 选中深层文件夹时，逐级展开它的祖先，保证选中项可见
+  useEffect(() => {
+    if (typeof activeFolderId !== 'string') return;
+    expandIds(getAncestorIds(folders, activeFolderId));
+  }, [activeFolderId, folders, expandIds]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定要删除这篇笔记吗？')) return;
@@ -117,105 +157,170 @@ export const NoteManagement = () => {
     }
   };
 
-  const handleCreateFolder = async (name: string) => {
-    try {
-      const response = await noteApi.createFolder(name);
-      if (response.success) {
-        fetchFolders();
+  const handleCreateFolder = useCallback(
+    async (name: string, parentId: string | null) => {
+      try {
+        const response = await noteApi.createFolder(name, parentId);
+        if (response.success) {
+          if (parentId) expandIds([parentId]);
+          fetchFolders();
+        } else if (response.message) {
+          alert(response.message);
+        }
+      } catch (error) {
+        console.error('Failed to create folder:', error);
       }
-    } catch (error) {
-      console.error('Failed to create folder:', error);
-    }
-  };
+    },
+    [fetchFolders, expandIds]
+  );
 
-  const handleRenameFolder = async (id: string, name: string) => {
-    try {
-      const response = await noteApi.renameFolder(id, name);
-      if (response.success) {
-        fetchFolders();
+  const handleRenameFolder = useCallback(
+    async (id: string, name: string) => {
+      try {
+        const response = await noteApi.renameFolder(id, name);
+        if (response.success) {
+          fetchFolders();
+        } else if (response.message) {
+          alert(response.message);
+        }
+      } catch (error) {
+        console.error('Failed to rename folder:', error);
       }
-    } catch (error) {
-      console.error('Failed to rename folder:', error);
-    }
-  };
+    },
+    [fetchFolders]
+  );
 
-  const handleDeleteFolder = async (id: string) => {
-    if (!confirm('确定要删除这个文件夹吗？文件夹内的笔记将移回"未归档"。')) return;
-    try {
-      const response = await noteApi.deleteFolder(id);
-      if (response.success) {
-        if (activeFolderId === id) setActiveFolderId(undefined);
-        fetchFolders();
-        fetchNotes();
+  const handleDeleteFolder = useCallback(
+    async (id: string) => {
+      const descendants = collectDescendantIds(folders, id);
+      const noteCount = folders.find((f) => f.id === id)?.noteCount ?? 0;
+      const scope =
+        descendants.length > 0
+          ? `该文件夹及其 ${descendants.length} 个子文件夹将被删除`
+          : '该文件夹将被删除';
+      if (!confirm(`${scope}，其中 ${noteCount} 篇笔记将移回“未归档”。确定继续吗？`)) {
+        return;
       }
-    } catch (error) {
-      console.error('Failed to delete folder:', error);
-    }
-  };
+
+      try {
+        const response = await noteApi.deleteFolder(id);
+        if (response.success) {
+          if (
+            activeFolderId &&
+            (activeFolderId === id || descendants.includes(activeFolderId))
+          ) {
+            setActiveFolderId(undefined);
+          }
+          fetchFolders();
+          fetchNotes();
+        }
+      } catch (error) {
+        console.error('Failed to delete folder:', error);
+      }
+    },
+    [folders, activeFolderId, fetchFolders, fetchNotes]
+  );
+
+  /** 把 dnd-kit 的 over id 解析成有效落点；无效组合返回 null */
+  const resolveDropTarget = useCallback(
+    (activeData: DragItem['type'] | undefined, draggedFolder: NoteFolder | undefined, overId: string | null) => {
+      if (!overId) return null;
+
+      let target: string | null = null;
+      if (overId === 'folder-all') target = 'all';
+      else if (overId === 'folder-unfiled') target = 'unfiled';
+      else if (overId.startsWith('folder-')) target = overId.slice('folder-'.length);
+      if (!target) return null;
+
+      if (activeData === 'folder' && draggedFolder) {
+        // 文件夹不能移入未归档；也不能移到自己或自己的子孙下
+        if (target === 'unfiled') return null;
+        if (target !== 'all') {
+          if (target === draggedFolder.id) return null;
+          if (collectDescendantIds(folders, draggedFolder.id).includes(target)) return null;
+        }
+      } else if (activeData === 'note') {
+        // 「全部笔记」不是笔记的有效归类目标
+        if (target === 'all') return null;
+      }
+
+      return target;
+    },
+    [folders]
+  );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    if (active.data.current?.type === 'note') {
-      setActiveDragNote(active.data.current.note);
+    const data = event.active.data.current;
+    if (data?.type === 'note') {
+      setActiveDragItem({ type: 'note', note: data.note as Note });
+    } else if (data?.type === 'folder') {
+      setActiveDragItem({ type: 'folder', folder: data.folder as NoteFolder });
     }
   }, []);
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { over } = event;
-    if (!over) {
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event;
+      const data = active.data.current;
+      const draggedFolder =
+        data?.type === 'folder' ? (data.folder as NoteFolder) : undefined;
+      setOverFolderId(
+        resolveDropTarget(
+          data?.type as DragItem['type'] | undefined,
+          draggedFolder,
+          (over?.id as string) ?? null
+        )
+      );
+    },
+    [resolveDropTarget]
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      const data = active.data.current;
+      const draggedFolder =
+        data?.type === 'folder' ? (data.folder as NoteFolder) : undefined;
+
+      setActiveDragItem(null);
       setOverFolderId(null);
-      return;
-    }
-    const overId = over.id as string;
-    if (overId === 'folder-all') {
-      setOverFolderId('all');
-    } else if (overId === 'folder-unfiled') {
-      setOverFolderId('unfiled');
-    } else if (overId.startsWith('folder-')) {
-      setOverFolderId(overId.replace('folder-', ''));
-    } else {
-      setOverFolderId(null);
-    }
-  }, []);
 
-  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveDragNote(null);
-    setOverFolderId(null);
+      const target = resolveDropTarget(
+        data?.type as DragItem['type'] | undefined,
+        draggedFolder,
+        (over?.id as string) ?? null
+      );
+      if (!target) return;
 
-    if (!over) return;
+      try {
+        if (data?.type === 'note') {
+          const note = data.note as Note;
+          const targetFolderId = target === 'unfiled' ? null : target;
+          if ((note.folderId ?? null) === targetFolderId) return;
 
-    const activeId = active.id as string;
-    const overId = over.id as string;
+          const response = await noteApi.moveNoteToFolder(note.id, targetFolderId);
+          if (response.success) {
+            fetchNotes();
+            fetchFolders();
+          }
+        } else if (data?.type === 'folder' && draggedFolder) {
+          const newParentId = target === 'all' ? null : target;
+          if ((draggedFolder.parentId ?? null) === newParentId) return;
 
-    if (!activeId.startsWith('note-') || !overId.startsWith('folder-')) return;
-
-    const noteId = activeId.replace('note-', '');
-    let targetFolderId: string | null = null;
-
-    if (overId === 'folder-unfiled') {
-      targetFolderId = null;
-    } else if (overId === 'folder-all') {
-      return; // dropping on "all" is a no-op
-    } else {
-      targetFolderId = overId.replace('folder-', '');
-    }
-
-    // Don't move if already in this folder
-    const draggedNote = active.data.current?.note as Note | undefined;
-    const currentFolderId = draggedNote?.folderId ?? null;
-    if (currentFolderId === targetFolderId) return;
-
-    try {
-      const response = await noteApi.moveNoteToFolder(noteId, targetFolderId);
-      if (response.success) {
-        fetchNotes();
-        fetchFolders();
+          const response = await noteApi.moveFolder(draggedFolder.id, newParentId);
+          if (response.success) {
+            if (newParentId) expandIds([newParentId]);
+            fetchFolders();
+          } else if (response.message) {
+            alert(response.message);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to complete drag:', error);
       }
-    } catch (error) {
-      console.error('Failed to move note:', error);
-    }
-  }, []);
+    },
+    [resolveDropTarget, fetchNotes, fetchFolders, expandIds]
+  );
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
@@ -239,7 +344,7 @@ export const NoteManagement = () => {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold text-gray-900">笔记管理</h1>
-            <p className="text-gray-500 mt-1">管理您的 Markdown 笔记，拖拽笔记到文件夹进行整理</p>
+            <p className="text-gray-500 mt-1">管理您的 Markdown 笔记，拖拽笔记或文件夹进行整理</p>
           </div>
           <Link
             to="/admin/notes/new"
@@ -251,22 +356,29 @@ export const NoteManagement = () => {
         </div>
 
         <div className="flex gap-6 items-start">
-          {/* Left sidebar - folders */}
-          <div className="w-56 flex-shrink-0 sticky top-4">
+          {/* 左侧：文件夹树 */}
+          <div className="w-64 flex-shrink-0 sticky top-4">
             <NoteFolderSidebar
-              folders={folders}
+              nodes={folderTree}
               unfiledCount={unfiledCount}
               totalNotes={totalNotes}
               activeFolderId={activeFolderId}
-              onSelectFolder={(id) => { setActiveFolderId(id); setCurrentPage(1); }}
+              expandedIds={expandedIds}
+              dragType={activeDragItem?.type ?? null}
+              isOver={overFolderId}
+              onSelectFolder={(id) => {
+                setActiveFolderId(id);
+                setCurrentPage(1);
+              }}
               onCreateFolder={handleCreateFolder}
               onRenameFolder={handleRenameFolder}
               onDeleteFolder={handleDeleteFolder}
-              isOver={overFolderId}
+              onToggleExpand={toggleExpand}
+              onExpand={(id) => expandIds([id])}
             />
           </div>
 
-          {/* Right main area - notes table */}
+          {/* 右侧：笔记列表 */}
           <div className="flex-1 min-w-0 space-y-4">
             <div className="bg-white rounded-xl shadow-md p-4">
               <div className="flex flex-col md:flex-row gap-4">
@@ -284,7 +396,10 @@ export const NoteManagement = () => {
                   <Filter className="w-5 h-5 text-gray-400" />
                   <select
                     value={filterStatus}
-                    onChange={(e) => { setFilterStatus(e.target.value as typeof filterStatus); setCurrentPage(1); }}
+                    onChange={(e) => {
+                      setFilterStatus(e.target.value as typeof filterStatus);
+                      setCurrentPage(1);
+                    }}
                     className="px-4 py-2 border border-gray-200 rounded-lg focus:border-accent-500 focus:outline-none"
                   >
                     <option value="all">全部状态</option>
@@ -414,13 +529,23 @@ export const NoteManagement = () => {
         </div>
       </div>
 
-      {/* Drag overlay */}
       <DragOverlay dropAnimation={null}>
-        {activeDragNote ? (
+        {activeDragItem?.type === 'note' ? (
           <div className="bg-white shadow-xl rounded-lg px-4 py-3 border-2 border-accent-400 opacity-90 max-w-xs">
             <div className="flex items-center gap-2">
               <FolderInput className="w-4 h-4 text-accent-500 flex-shrink-0" />
-              <p className="text-sm font-medium text-gray-900 truncate">{activeDragNote.title}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {activeDragItem.note.title}
+              </p>
+            </div>
+          </div>
+        ) : activeDragItem?.type === 'folder' ? (
+          <div className="bg-white shadow-xl rounded-lg px-3 py-2 border-2 border-accent-400 opacity-90 max-w-xs">
+            <div className="flex items-center gap-2">
+              <Folder className="w-4 h-4 text-accent-500 flex-shrink-0" />
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {activeDragItem.folder.name}
+              </p>
             </div>
           </div>
         ) : null}

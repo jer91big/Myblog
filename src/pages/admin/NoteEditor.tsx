@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Save, Eye, AlertCircle, Upload } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { noteApi } from '../../api';
 import { NoteFolder } from '../../types';
+import { buildFolderTree, flattenTree } from '../../lib/folderTree';
 
 export const NoteEditor = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,12 @@ export const NoteEditor = () => {
   const [saveError, setSaveError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // <select> 无法嵌套渲染，按先序展平并按层级加缩进
+  const folderOptions = useMemo(
+    () => flattenTree(buildFolderTree(folders)),
+    [folders]
+  );
 
   // 上传本地 .md 文件，内容填入编辑器（标题为空时用文件名）
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,8 +280,12 @@ export const NoteEditor = () => {
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:border-accent-500 focus:outline-none"
             >
               <option value="">未归档</option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>{f.name}</option>
+              {folderOptions.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {'　'.repeat(f.depth)}
+                  {f.depth > 0 ? '└ ' : ''}
+                  {f.name}
+                </option>
               ))}
             </select>
             <p className="text-xs text-gray-400 mt-2">选择笔记所属的文件夹</p>

@@ -516,19 +516,27 @@ export const noteApi = {
     return response.json();
   },
 
-  getFolders: async (): Promise<ApiResponse<{ folders: NoteFolder[]; unfiledCount: number }>> => {
-    const response = await authFetch(`${API_BASE_URL}/note-folders`, {
+  getFolders: async (opts?: {
+    publishedOnly?: boolean;
+  }): Promise<
+    ApiResponse<{ folders: NoteFolder[]; unfiledCount: number; totalNotes: number }>
+  > => {
+    const params = opts?.publishedOnly ? { publishedOnly: 1 } : undefined;
+    const response = await authFetch(buildUrl('/note-folders', params), {
       method: 'GET',
       headers: headers(),
     });
     return response.json();
   },
 
-  createFolder: async (name: string): Promise<ApiResponse<NoteFolder>> => {
+  createFolder: async (
+    name: string,
+    parentId: string | null = null
+  ): Promise<ApiResponse<NoteFolder>> => {
     const response = await authFetch(`${API_BASE_URL}/note-folders`, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, parentId }),
     });
     return response.json();
   },
@@ -542,7 +550,23 @@ export const noteApi = {
     return response.json();
   },
 
-  deleteFolder: async (id: string): Promise<ApiResponse<void>> => {
+  moveFolder: async (
+    id: string,
+    parentId: string | null
+  ): Promise<ApiResponse<NoteFolder>> => {
+    const response = await authFetch(`${API_BASE_URL}/note-folders/${id}/move`, {
+      method: 'PATCH',
+      headers: headers(),
+      body: JSON.stringify({ parentId }),
+    });
+    return response.json();
+  },
+
+  deleteFolder: async (
+    id: string
+  ): Promise<
+    ApiResponse<{ deletedFolderCount: number; movedNoteCount: number }>
+  > => {
     const response = await authFetch(`${API_BASE_URL}/note-folders/${id}`, {
       method: 'DELETE',
       headers: headers(),
