@@ -1,7 +1,23 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-react';
+import {
+  BookOpen,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  X,
+} from 'lucide-react';
 import { FolderNode, getAncestorIds } from '../lib/folderTree';
 import type { NoteFolder } from '../types';
+import { FolderContextMenu } from './FolderContextMenu';
+import { useFolderTreeActions, type RenameSession } from '../hooks/useFolderTreeActions';
+
+/** 管理员的右键操作；不传则整棵树只读 */
+export interface NoteFolderTreeActions {
+  onCreateNote: (folderId: string) => void;
+  onRenameFolder: (id: string, name: string) => void;
+}
 
 interface NoteFolderTreeProps {
   nodes: FolderNode[];
@@ -10,23 +26,39 @@ interface NoteFolderTreeProps {
   totalNotes: number;
   activeFolderId: string | undefined;
   onSelect: (folderId: string | undefined) => void;
+  actions?: NoteFolderTreeActions;
 }
 
 interface TreeItemProps {
   node: FolderNode;
   activeFolderId: string | undefined;
   expandedIds: Set<string>;
+  rename: RenameSession | null;
+  canManage: boolean;
   onToggle: (id: string) => void;
   onSelect: (folderId: string) => void;
+  onStartRename: (id: string, currentName: string) => void;
+  onRenameNameChange: (value: string) => void;
+  onCommitRename: () => void;
+  onCancelRename: () => void;
+  onContextMenu: (event: React.MouseEvent, folderId: string, name: string) => void;
 }
 
 function TreeItem({
   node,
   activeFolderId,
   expandedIds,
+  rename,
+  canManage,
   onToggle,
   onSelect,
+  onStartRename,
+  onRenameNameChange,
+  onCommitRename,
+  onCancelRename,
+  onContextMenu,
 }: TreeItemProps) {
+  const isEditing = rename?.id === node.id;
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.id);
   const isActive = activeFolderId === node.id;
@@ -36,12 +68,18 @@ function TreeItem({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => onSelect(node.id)}
+        onClick={() => !isEditing && onSelect(node.id)}
         onKeyDown={(e) => {
+          if (isEditing) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             onSelect(node.id);
           }
+        }}
+        onContextMenu={(e) => {
+          if (!canManage || isEditing) return;
+          e.preventDefault();
+          onContextMenu(e, node.id, node.name);
         }}
         style={{ paddingLeft: 10 + node.depth * 14 }}
         className={`
@@ -73,8 +111,45 @@ function TreeItem({
           <Folder className="w-4 h-4 flex-shrink-0" />
         )}
 
-        <span className="flex-1 text-sm truncate">{node.name}</span>
-        <span className="text-xs text-gray-400 flex-shrink-0">{node.noteCount}</span>
+        {isEditing ? (
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <input
+              type="text"
+              value={rename.name}
+              onChange={(e) => onRenameNameChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onCommitRename();
+                if (e.key === 'Escape') onCancelRename();
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 min-w-0 px-1 py-0.5 text-sm border border-accent-300 rounded focus:outline-none"
+              autoFocus
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCommitRename();
+              }}
+              className="p-0.5 text-green-600 hover:bg-green-50 rounded"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancelRename();
+              }}
+              className="p-0.5 text-gray-400 hover:bg-gray-100 rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <span className="flex-1 text-sm truncate">{node.name}</span>
+            <span className="text-xs text-gray-400 flex-shrink-0">{node.noteCount}</span>
+          </>
+        )}
       </div>
 
       {hasChildren && isExpanded && (
@@ -85,8 +160,15 @@ function TreeItem({
               node={child}
               activeFolderId={activeFolderId}
               expandedIds={expandedIds}
+              rename={rename}
+              canManage={canManage}
               onToggle={onToggle}
               onSelect={onSelect}
+              onStartRename={onStartRename}
+              onRenameNameChange={onRenameNameChange}
+              onCommitRename={onCommitRename}
+              onCancelRename={onCancelRename}
+              onContextMenu={onContextMenu}
             />
           ))}
         </div>
@@ -95,14 +177,27 @@ function TreeItem({
   );
 }
 
+const noop = () => {};
+
 export const NoteFolderTree = ({
   nodes,
   flatFolders,
   totalNotes,
   activeFolderId,
   onSelect,
+  actions,
 }: NoteFolderTreeProps) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const {
+    menu,
+    openContextMenu,
+    closeMenu,
+    rename,
+    startRename,
+    setRenameName,
+    commitRename,
+    cancelRename,
+  } = useFolderTreeActions(actions?.onRenameFolder ?? noop);
 
   // 选中深层文件夹时逐级展开祖先，避免选中项被折叠隐藏
   useEffect(() => {
@@ -148,10 +243,26 @@ export const NoteFolderTree = ({
           node={node}
           activeFolderId={activeFolderId}
           expandedIds={expandedIds}
+          rename={rename}
+          canManage={Boolean(actions)}
           onToggle={toggle}
           onSelect={onSelect}
+          onStartRename={startRename}
+          onRenameNameChange={setRenameName}
+          onCommitRename={commitRename}
+          onCancelRename={cancelRename}
+          onContextMenu={openContextMenu}
         />
       ))}
+
+      {menu && actions && (
+        <FolderContextMenu
+          menu={menu}
+          onClose={closeMenu}
+          onCreateNote={actions.onCreateNote}
+          onRename={startRename}
+        />
+      )}
     </nav>
   );
 };

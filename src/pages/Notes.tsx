@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Calendar, Tag } from 'lucide-react';
 import { noteApi } from '../api';
 import { Note, NoteFolder } from '../types';
@@ -7,9 +7,13 @@ import BorderGlow from '../components/BorderGlow';
 import { Pagination } from '../components/Pagination';
 import { NoteFolderTree } from '../components/NoteFolderTree';
 import { buildFolderTree } from '../lib/folderTree';
+import { useAuthStore } from '../store/authStore';
 import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 export const Notes = () => {
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'admin';
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [totalNotes, setTotalNotes] = useState(0);
@@ -98,6 +102,24 @@ export const Notes = () => {
     setCurrentPage(1);
   };
 
+  // 管理员的右键菜单操作，普通访客不传则文件夹树保持只读
+  const handleCreateNoteInFolder = (folderId: string) => {
+    navigate(`/admin/notes/new?folderId=${encodeURIComponent(folderId)}`);
+  };
+
+  const handleRenameFolder = async (id: string, name: string) => {
+    try {
+      const response = await noteApi.renameFolder(id, name);
+      if (response.success) {
+        fetchFolders();
+      } else if (response.message) {
+        alert(response.message);
+      }
+    } catch (error) {
+      console.error('Failed to rename folder:', error);
+    }
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('zh-CN', {
@@ -151,6 +173,14 @@ export const Notes = () => {
                 totalNotes={totalNotes}
                 activeFolderId={activeFolderId}
                 onSelect={handleFolderChange}
+                actions={
+                  isAdmin
+                    ? {
+                        onCreateNote: handleCreateNoteInFolder,
+                        onRenameFolder: handleRenameFolder,
+                      }
+                    : undefined
+                }
               />
             </aside>
           )}

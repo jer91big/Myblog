@@ -4,7 +4,6 @@ import {
   ChevronDown,
   ChevronRight,
   Edit2,
-  FilePlus,
   FileText,
   Folder,
   FolderInput,
@@ -16,22 +15,10 @@ import {
 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { FolderNode } from '../lib/folderTree';
+import { FolderContextMenu } from './FolderContextMenu';
+import { useFolderTreeActions, type RenameSession } from '../hooks/useFolderTreeActions';
 
 export type DragType = 'note' | 'folder' | null;
-
-/** 右键菜单里的一次编辑会话，name 为草稿值，original 用于判断是否真的改了名 */
-interface RenameSession {
-  id: string;
-  name: string;
-  original: string;
-}
-
-interface ContextMenuState {
-  folderId: string;
-  name: string;
-  x: number;
-  y: number;
-}
 
 interface NoteFolderSidebarProps {
   nodes: FolderNode[];
@@ -53,8 +40,6 @@ interface NoteFolderSidebarProps {
 }
 
 const HOVER_EXPAND_DELAY = 700;
-const CONTEXT_MENU_WIDTH = 168;
-const CONTEXT_MENU_HEIGHT = 88;
 
 interface FolderTreeItemProps {
   node: FolderNode;
@@ -355,8 +340,16 @@ export const NoteFolderSidebar = ({
   const [rootName, setRootName] = useState('');
   const [childInputParentId, setChildInputParentId] = useState<string | null>(null);
   const [childName, setChildName] = useState('');
-  const [rename, setRename] = useState<RenameSession | null>(null);
-  const [menu, setMenu] = useState<ContextMenuState | null>(null);
+  const {
+    menu,
+    openContextMenu,
+    closeMenu,
+    rename,
+    startRename,
+    setRenameName,
+    commitRename,
+    cancelRename,
+  } = useFolderTreeActions(onRenameFolder);
 
   const { setNodeRef: setAllRef } = useDroppable({
     id: 'folder-all',
@@ -366,47 +359,6 @@ export const NoteFolderSidebar = ({
     id: 'folder-unfiled',
     data: { type: 'unfiled-target' },
   });
-
-  // 右键菜单打开期间，点击别处、滚动或按 Esc 都应关闭
-  useEffect(() => {
-    if (!menu) return;
-    const close = () => setMenu(null);
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenu(null);
-    };
-    window.addEventListener('mousedown', close);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      window.removeEventListener('mousedown', close);
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [menu]);
-
-  const openContextMenu = (event: React.MouseEvent, folderId: string, name: string) => {
-    setMenu({
-      folderId,
-      name,
-      x: Math.max(4, Math.min(event.clientX, window.innerWidth - CONTEXT_MENU_WIDTH - 8)),
-      y: Math.max(4, Math.min(event.clientY, window.innerHeight - CONTEXT_MENU_HEIGHT - 8)),
-    });
-  };
-
-  const startRename = (id: string, currentName: string) => {
-    setRename({ id, name: currentName, original: currentName });
-  };
-
-  const commitRename = () => {
-    if (!rename) return;
-    const trimmed = rename.name.trim();
-    if (trimmed && trimmed !== rename.original) {
-      onRenameFolder(rename.id, trimmed);
-    }
-    setRename(null);
-  };
 
   const isFolderDrag = dragType === 'folder';
 
@@ -492,12 +444,10 @@ export const NoteFolderSidebar = ({
             setChildInputParentId(null);
             setChildName('');
           }}
-          onRenameNameChange={(value) =>
-            setRename((prev) => (prev ? { ...prev, name: value } : prev))
-          }
+          onRenameNameChange={setRenameName}
           onStartRename={startRename}
           onCommitRename={commitRename}
-          onCancelRename={() => setRename(null)}
+          onCancelRename={cancelRename}
           onContextMenu={openContextMenu}
           onSelectFolder={(id) => onSelectFolder(id)}
           onDeleteFolder={onDeleteFolder}
@@ -552,34 +502,12 @@ export const NoteFolderSidebar = ({
       )}
 
       {menu && (
-        <div
-          style={{ top: menu.y, left: menu.x, width: CONTEXT_MENU_WIDTH }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onContextMenu={(e) => e.preventDefault()}
-          className="fixed z-50 py-1 bg-white border border-gray-200 rounded-lg shadow-lg"
-        >
-          <button
-            onClick={() => {
-              const folderId = menu.folderId;
-              setMenu(null);
-              onCreateNote(folderId);
-            }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            <FilePlus className="w-4 h-4 text-gray-400" />
-            新建笔记
-          </button>
-          <button
-            onClick={() => {
-              startRename(menu.folderId, menu.name);
-              setMenu(null);
-            }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            <Edit2 className="w-4 h-4 text-gray-400" />
-            重命名
-          </button>
-        </div>
+        <FolderContextMenu
+          menu={menu}
+          onClose={closeMenu}
+          onCreateNote={onCreateNote}
+          onRename={startRename}
+        />
       )}
     </div>
   );
