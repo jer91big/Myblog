@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus, Edit, Trash2, Eye, Clock, Search, Filter, GripVertical, FolderInput, Folder,
 } from 'lucide-react';
@@ -53,6 +53,7 @@ function DraggableNoteRow({
 }
 
 export const NoteManagement = () => {
+  const navigate = useNavigate();
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [unfiledCount, setUnfiledCount] = useState(0);
@@ -188,6 +189,14 @@ export const NoteManagement = () => {
       }
     },
     [fetchFolders]
+  );
+
+  /** 在指定文件夹下新建笔记：把归属带给编辑器预选 */
+  const handleCreateNoteInFolder = useCallback(
+    (folderId: string) => {
+      navigate(`/admin/notes/new?folderId=${encodeURIComponent(folderId)}`);
+    },
+    [navigate]
   );
 
   const handleDeleteFolder = useCallback(
@@ -371,6 +380,7 @@ export const NoteManagement = () => {
                 setCurrentPage(1);
               }}
               onCreateFolder={handleCreateFolder}
+              onCreateNote={handleCreateNoteInFolder}
               onRenameFolder={handleRenameFolder}
               onDeleteFolder={handleDeleteFolder}
               onToggleExpand={toggleExpand}

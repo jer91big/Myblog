@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Save, Eye, AlertCircle, Upload } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -10,11 +10,15 @@ import { buildFolderTree, flattenTree } from '../../lib/folderTree';
 export const NoteEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
-  const [folderId, setFolderId] = useState<string>('');
+  // 从文件夹树的右键菜单进入时预选归属文件夹
+  const [folderId, setFolderId] = useState(() =>
+    id ? '' : searchParams.get('folderId') ?? ''
+  );
   const [originalFolderId, setOriginalFolderId] = useState<string>('');
   const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [isSaving, setIsSaving] = useState(false);

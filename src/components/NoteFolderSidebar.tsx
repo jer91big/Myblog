@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   Edit2,
+  FilePlus,
   FileText,
   Folder,
   FolderInput,
@@ -18,6 +19,20 @@ import { FolderNode } from '../lib/folderTree';
 
 export type DragType = 'note' | 'folder' | null;
 
+/** 右键菜单里的一次编辑会话，name 为草稿值，original 用于判断是否真的改了名 */
+interface RenameSession {
+  id: string;
+  name: string;
+  original: string;
+}
+
+interface ContextMenuState {
+  folderId: string;
+  name: string;
+  x: number;
+  y: number;
+}
+
 interface NoteFolderSidebarProps {
   nodes: FolderNode[];
   unfiledCount: number;
@@ -30,6 +45,7 @@ interface NoteFolderSidebarProps {
   isOver: string | null;
   onSelectFolder: (folderId: string | null | undefined) => void;
   onCreateFolder: (name: string, parentId: string | null) => void;
+  onCreateNote: (folderId: string) => void;
   onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
   onToggleExpand: (id: string) => void;
@@ -37,6 +53,8 @@ interface NoteFolderSidebarProps {
 }
 
 const HOVER_EXPAND_DELAY = 700;
+const CONTEXT_MENU_WIDTH = 168;
+const CONTEXT_MENU_HEIGHT = 88;
 
 interface FolderTreeItemProps {
   node: FolderNode;
@@ -45,11 +63,16 @@ interface FolderTreeItemProps {
   isOver: string | null;
   childInputParentId: string | null;
   childName: string;
+  rename: RenameSession | null;
   onChildNameChange: (value: string) => void;
   onSubmitChild: () => void;
   onCancelChild: () => void;
+  onRenameNameChange: (value: string) => void;
+  onStartRename: (id: string, currentName: string) => void;
+  onCommitRename: () => void;
+  onCancelRename: () => void;
+  onContextMenu: (event: React.MouseEvent, folderId: string, name: string) => void;
   onSelectFolder: (folderId: string) => void;
-  onRenameFolder: (id: string, name: string) => void;
   onDeleteFolder: (id: string) => void;
   onToggleExpand: (id: string) => void;
   onExpand: (id: string) => void;
@@ -63,18 +86,22 @@ function FolderTreeItem({
   isOver,
   childInputParentId,
   childName,
+  rename,
   onChildNameChange,
   onSubmitChild,
   onCancelChild,
+  onRenameNameChange,
+  onStartRename,
+  onCommitRename,
+  onCancelRename,
+  onContextMenu,
   onSelectFolder,
-  onRenameFolder,
   onDeleteFolder,
   onToggleExpand,
   onExpand,
   onStartChild,
 }: FolderTreeItemProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(node.name);
+  const isEditing = rename?.id === node.id;
 
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.id);
@@ -111,20 +138,16 @@ function FolderTreeItem({
     return () => window.clearTimeout(timer);
   }, [isOverThis, isExpanded, hasChildren, isEditing, node.id, onExpand]);
 
-  const commitRename = () => {
-    const trimmed = editName.trim();
-    if (trimmed && trimmed !== node.name) {
-      onRenameFolder(node.id, trimmed);
-    }
-    setIsEditing(false);
-    setEditName(node.name);
-  };
-
   return (
     <div>
       <div
         ref={setRefs}
         onClick={() => !isEditing && onSelectFolder(node.id)}
+        onContextMenu={(e) => {
+          if (isEditing) return;
+          e.preventDefault();
+          onContextMenu(e, node.id, node.name);
+        }}
         style={{ paddingLeft: 8 + node.depth * 14 }}
         className={`
           group flex items-center gap-1.5 pr-2 py-2 rounded-lg cursor-pointer transition-all duration-200
@@ -175,14 +198,11 @@ function FolderTreeItem({
           <div className="flex items-center gap-1 flex-1 min-w-0">
             <input
               type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
+              value={rename.name}
+              onChange={(e) => onRenameNameChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') commitRename();
-                if (e.key === 'Escape') {
-                  setIsEditing(false);
-                  setEditName(node.name);
-                }
+                if (e.key === 'Enter') onCommitRename();
+                if (e.key === 'Escape') onCancelRename();
               }}
               onClick={(e) => e.stopPropagation()}
               className="flex-1 min-w-0 px-1 py-0.5 text-sm border border-accent-300 rounded focus:outline-none"
@@ -191,7 +211,7 @@ function FolderTreeItem({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                commitRename();
+                onCommitRename();
               }}
               className="p-0.5 text-green-600 hover:bg-green-50 rounded"
             >
@@ -200,8 +220,7 @@ function FolderTreeItem({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setIsEditing(false);
-                setEditName(node.name);
+                onCancelRename();
               }}
               className="p-0.5 text-gray-400 hover:bg-gray-100 rounded"
             >
@@ -228,8 +247,7 @@ function FolderTreeItem({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setEditName(node.name);
-                  setIsEditing(true);
+                  onStartRename(node.id, node.name);
                 }}
                 title="重命名"
                 className="p-0.5 text-gray-400 hover:text-accent-600 rounded"
@@ -295,11 +313,16 @@ function FolderTreeItem({
               isOver={isOver}
               childInputParentId={childInputParentId}
               childName={childName}
+              rename={rename}
               onChildNameChange={onChildNameChange}
               onSubmitChild={onSubmitChild}
               onCancelChild={onCancelChild}
+              onRenameNameChange={onRenameNameChange}
+              onStartRename={onStartRename}
+              onCommitRename={onCommitRename}
+              onCancelRename={onCancelRename}
+              onContextMenu={onContextMenu}
               onSelectFolder={onSelectFolder}
-              onRenameFolder={onRenameFolder}
               onDeleteFolder={onDeleteFolder}
               onToggleExpand={onToggleExpand}
               onExpand={onExpand}
@@ -322,6 +345,7 @@ export const NoteFolderSidebar = ({
   isOver,
   onSelectFolder,
   onCreateFolder,
+  onCreateNote,
   onRenameFolder,
   onDeleteFolder,
   onToggleExpand,
@@ -331,6 +355,8 @@ export const NoteFolderSidebar = ({
   const [rootName, setRootName] = useState('');
   const [childInputParentId, setChildInputParentId] = useState<string | null>(null);
   const [childName, setChildName] = useState('');
+  const [rename, setRename] = useState<RenameSession | null>(null);
+  const [menu, setMenu] = useState<ContextMenuState | null>(null);
 
   const { setNodeRef: setAllRef } = useDroppable({
     id: 'folder-all',
@@ -340,6 +366,47 @@ export const NoteFolderSidebar = ({
     id: 'folder-unfiled',
     data: { type: 'unfiled-target' },
   });
+
+  // 右键菜单打开期间，点击别处、滚动或按 Esc 都应关闭
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenu(null);
+    };
+    window.addEventListener('mousedown', close);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', close);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menu]);
+
+  const openContextMenu = (event: React.MouseEvent, folderId: string, name: string) => {
+    setMenu({
+      folderId,
+      name,
+      x: Math.max(4, Math.min(event.clientX, window.innerWidth - CONTEXT_MENU_WIDTH - 8)),
+      y: Math.max(4, Math.min(event.clientY, window.innerHeight - CONTEXT_MENU_HEIGHT - 8)),
+    });
+  };
+
+  const startRename = (id: string, currentName: string) => {
+    setRename({ id, name: currentName, original: currentName });
+  };
+
+  const commitRename = () => {
+    if (!rename) return;
+    const trimmed = rename.name.trim();
+    if (trimmed && trimmed !== rename.original) {
+      onRenameFolder(rename.id, trimmed);
+    }
+    setRename(null);
+  };
 
   const isFolderDrag = dragType === 'folder';
 
@@ -418,14 +485,21 @@ export const NoteFolderSidebar = ({
           isOver={isOver}
           childInputParentId={childInputParentId}
           childName={childName}
+          rename={rename}
           onChildNameChange={setChildName}
           onSubmitChild={submitChild}
           onCancelChild={() => {
             setChildInputParentId(null);
             setChildName('');
           }}
+          onRenameNameChange={(value) =>
+            setRename((prev) => (prev ? { ...prev, name: value } : prev))
+          }
+          onStartRename={startRename}
+          onCommitRename={commitRename}
+          onCancelRename={() => setRename(null)}
+          onContextMenu={openContextMenu}
           onSelectFolder={(id) => onSelectFolder(id)}
-          onRenameFolder={onRenameFolder}
           onDeleteFolder={onDeleteFolder}
           onToggleExpand={onToggleExpand}
           onExpand={onExpand}
@@ -475,6 +549,37 @@ export const NoteFolderSidebar = ({
           <Plus className="w-4 h-4" />
           新建文件夹
         </button>
+      )}
+
+      {menu && (
+        <div
+          style={{ top: menu.y, left: menu.x, width: CONTEXT_MENU_WIDTH }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+          className="fixed z-50 py-1 bg-white border border-gray-200 rounded-lg shadow-lg"
+        >
+          <button
+            onClick={() => {
+              const folderId = menu.folderId;
+              setMenu(null);
+              onCreateNote(folderId);
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <FilePlus className="w-4 h-4 text-gray-400" />
+            新建笔记
+          </button>
+          <button
+            onClick={() => {
+              startRename(menu.folderId, menu.name);
+              setMenu(null);
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            <Edit2 className="w-4 h-4 text-gray-400" />
+            重命名
+          </button>
+        </div>
       )}
     </div>
   );
