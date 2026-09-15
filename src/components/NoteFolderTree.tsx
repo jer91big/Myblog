@@ -16,6 +16,7 @@ import { useFolderTreeActions, type RenameSession } from '../hooks/useFolderTree
 /** 管理员的右键操作；不传则整棵树只读 */
 export interface NoteFolderTreeActions {
   onCreateNote: (folderId: string) => void;
+  onCreateFolder: (name: string, parentId: string | null) => void;
   onRenameFolder: (id: string, name: string) => void;
 }
 
@@ -35,8 +36,13 @@ interface TreeItemProps {
   expandedIds: Set<string>;
   rename: RenameSession | null;
   canManage: boolean;
+  childInputActive: boolean;
+  childName: string;
   onToggle: (id: string) => void;
   onSelect: (folderId: string) => void;
+  onChildNameChange: (value: string) => void;
+  onSubmitChild: () => void;
+  onCancelChild: () => void;
   onStartRename: (id: string, currentName: string) => void;
   onRenameNameChange: (value: string) => void;
   onCommitRename: () => void;
@@ -50,8 +56,13 @@ function TreeItem({
   expandedIds,
   rename,
   canManage,
+  childInputActive,
+  childName,
   onToggle,
   onSelect,
+  onChildNameChange,
+  onSubmitChild,
+  onCancelChild,
   onStartRename,
   onRenameNameChange,
   onCommitRename,
@@ -152,6 +163,39 @@ function TreeItem({
         )}
       </div>
 
+      {/* 内联新建子文件夹输入框 */}
+      {childInputActive && (
+        <div
+          style={{ paddingLeft: 10 + (node.depth + 1) * 14 }}
+          className="flex items-center gap-1 pr-3 py-1.5"
+        >
+          <input
+            type="text"
+            value={childName}
+            onChange={(e) => onChildNameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSubmitChild();
+              if (e.key === 'Escape') onCancelChild();
+            }}
+            placeholder="子文件夹名称"
+            className="flex-1 min-w-0 px-2 py-1 text-sm border border-accent-300 rounded focus:outline-none"
+            autoFocus
+          />
+          <button
+            onClick={onSubmitChild}
+            className="p-1 text-green-600 hover:bg-green-50 rounded"
+          >
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onCancelChild}
+            className="p-1 text-gray-400 hover:bg-gray-100 rounded"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {hasChildren && isExpanded && (
         <div>
           {node.children.map((child) => (
@@ -162,8 +206,13 @@ function TreeItem({
               expandedIds={expandedIds}
               rename={rename}
               canManage={canManage}
+              childInputActive={childInputActive}
+              childName={childName}
               onToggle={onToggle}
               onSelect={onSelect}
+              onChildNameChange={onChildNameChange}
+              onSubmitChild={onSubmitChild}
+              onCancelChild={onCancelChild}
               onStartRename={onStartRename}
               onRenameNameChange={onRenameNameChange}
               onCommitRename={onCommitRename}
@@ -188,6 +237,8 @@ export const NoteFolderTree = ({
   actions,
 }: NoteFolderTreeProps) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [childInputParentId, setChildInputParentId] = useState<string | null>(null);
+  const [childName, setChildName] = useState('');
   const {
     menu,
     openContextMenu,
@@ -219,6 +270,21 @@ export const NoteFolderTree = ({
     });
   };
 
+  const startAddFolder = (parentId: string) => {
+    setExpandedIds((prev) => (prev.has(parentId) ? prev : new Set([...prev, parentId])));
+    setChildInputParentId(parentId);
+    setChildName('');
+  };
+
+  const submitChild = () => {
+    const trimmed = childName.trim();
+    if (trimmed && childInputParentId && actions) {
+      actions.onCreateFolder(trimmed, childInputParentId);
+    }
+    setChildInputParentId(null);
+    setChildName('');
+  };
+
   return (
     <nav className="bg-white rounded-xl shadow-sm p-3">
       <h3 className="font-semibold text-gray-800 text-sm mb-2 px-1">文件夹</h3>
@@ -245,8 +311,16 @@ export const NoteFolderTree = ({
           expandedIds={expandedIds}
           rename={rename}
           canManage={Boolean(actions)}
+          childInputActive={childInputParentId === node.id}
+          childName={childName}
           onToggle={toggle}
           onSelect={onSelect}
+          onChildNameChange={setChildName}
+          onSubmitChild={submitChild}
+          onCancelChild={() => {
+            setChildInputParentId(null);
+            setChildName('');
+          }}
           onStartRename={startRename}
           onRenameNameChange={setRenameName}
           onCommitRename={commitRename}
@@ -260,6 +334,7 @@ export const NoteFolderTree = ({
           menu={menu}
           onClose={closeMenu}
           onCreateNote={actions.onCreateNote}
+          onAddFolder={startAddFolder}
           onRename={startRename}
         />
       )}

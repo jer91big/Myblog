@@ -546,6 +546,48 @@ h1, h2, h3, h4, h5, h6 {
   background: #334155;
 }
 
+/* 代码块亮色主题（块级切换，与站点主题无关），需覆盖 .article-content pre 与 .dark .prose pre */
+.code-block-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.code-theme-light,
+.dark .code-block-wrapper.code-theme-light {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.code-theme-light .code-block-toolbar,
+.dark .code-block-wrapper.code-theme-light .code-block-toolbar {
+  background: #eef2f7;
+  color: #475569;
+}
+
+.code-theme-light .code-copy-button,
+.dark .code-block-wrapper.code-theme-light .code-copy-button {
+  color: #475569;
+}
+
+.code-theme-light .code-copy-button:hover,
+.dark .code-block-wrapper.code-theme-light .code-copy-button:hover {
+  background: #d9e0e8;
+  color: #0f172a;
+}
+
+.code-theme-light pre,
+.dark .code-block-wrapper.code-theme-light pre {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+.code-theme-light pre code,
+.dark .code-block-wrapper.code-theme-light pre code {
+  background: transparent;
+  color: inherit;
+}
+
 @media (max-width: 640px) {
   .article-content {
     font-size: 1rem;

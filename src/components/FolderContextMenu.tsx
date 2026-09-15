@@ -1,4 +1,4 @@
-import { Edit2, FilePlus } from 'lucide-react';
+import { Edit2, FilePlus, FolderPlus } from 'lucide-react';
 import type { FolderMenuTarget } from '../hooks/useFolderTreeActions';
 
 const MENU_WIDTH = 168;
@@ -7,6 +7,8 @@ interface FolderContextMenuProps {
   menu: FolderMenuTarget | null;
   onClose: () => void;
   onCreateNote: (folderId: string) => void;
+  /** 提供则显示「新建文件夹」项，在该文件夹下创建子文件夹 */
+  onAddFolder?: (folderId: string) => void;
   onRename: (folderId: string, name: string) => void;
 }
 
@@ -14,6 +16,7 @@ export function FolderContextMenu({
   menu,
   onClose,
   onCreateNote,
+  onAddFolder,
   onRename,
 }: FolderContextMenuProps) {
   if (!menu) return null;
@@ -36,6 +39,19 @@ export function FolderContextMenu({
         <FilePlus className="w-4 h-4 text-gray-400" />
         新建笔记
       </button>
+      {onAddFolder && (
+        <button
+          onClick={() => {
+            const { folderId } = menu;
+            onClose();
+            onAddFolder(folderId);
+          }}
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          <FolderPlus className="w-4 h-4 text-gray-400" />
+          新建文件夹
+        </button>
+      )}
       <button
         onClick={() => {
           const { folderId, name } = menu;

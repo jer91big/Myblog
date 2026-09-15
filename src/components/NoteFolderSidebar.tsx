@@ -506,6 +506,7 @@ export const NoteFolderSidebar = ({
           menu={menu}
           onClose={closeMenu}
           onCreateNote={onCreateNote}
+          onAddFolder={startChild}
           onRename={startRename}
         />
       )}

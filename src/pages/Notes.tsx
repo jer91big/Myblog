@@ -120,6 +120,19 @@ export const Notes = () => {
     }
   };
 
+  const handleCreateFolder = async (name: string, parentId: string | null) => {
+    try {
+      const response = await noteApi.createFolder(name, parentId);
+      if (response.success) {
+        fetchFolders();
+      } else if (response.message) {
+        alert(response.message);
+      }
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+    }
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('zh-CN', {
@@ -177,6 +190,7 @@ export const Notes = () => {
                   isAdmin
                     ? {
                         onCreateNote: handleCreateNoteInFolder,
+                        onCreateFolder: handleCreateFolder,
                         onRenameFolder: handleRenameFolder,
                       }
                     : undefined
