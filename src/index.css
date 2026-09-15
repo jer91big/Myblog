@@ -442,11 +442,35 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* 代码块主题变量：默认亮色，.dark 作用域整体切到暗色；块级 code-theme-* 类可手动覆盖 */
 .code-block-wrapper {
+  --code-bg: #f8fafc;
+  --code-border: #e2e8f0;
+  --code-toolbar-bg: #eef2f7;
+  --code-toolbar-fg: #475569;
+  --code-btn-fg: #475569;
+  --code-btn-hover-bg: #d9e0e8;
+  --code-btn-hover-fg: #0f172a;
+  --code-pre-fg: #1e293b;
+  --code-inline-bg: transparent;
+
   margin: 1rem 0;
   overflow: hidden;
   border-radius: 0.5rem;
-  background: #111827;
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+}
+
+.dark .code-block-wrapper {
+  --code-bg: #020617;
+  --code-border: #1e293b;
+  --code-toolbar-bg: #1e293b;
+  --code-toolbar-fg: #cbd5e1;
+  --code-btn-fg: #e2e8f0;
+  --code-btn-hover-bg: #334155;
+  --code-btn-hover-fg: #fff;
+  --code-pre-fg: #e2e8f0;
+  --code-inline-bg: #334155;
 }
 
 .code-block-toolbar {
@@ -455,8 +479,8 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: space-between;
   min-height: 2.5rem;
   padding: 0.5rem 0.75rem;
-  color: #cbd5e1;
-  background: #1f2937;
+  color: var(--code-toolbar-fg);
+  background: var(--code-toolbar-bg);
   font-family: Inter, system-ui, sans-serif;
   font-size: 0.75rem;
 }
@@ -472,18 +496,28 @@ h1, h2, h3, h4, h5, h6 {
   gap: 0.3rem;
   padding: 0.25rem 0.5rem;
   border-radius: 0.375rem;
-  color: #e2e8f0;
+  color: var(--code-btn-fg);
   transition: background-color 160ms ease, color 160ms ease;
 }
 
 .code-copy-button:hover {
-  background: #374151;
-  color: #fff;
+  background: var(--code-btn-hover-bg);
+  color: var(--code-btn-hover-fg);
 }
 
-.code-block-wrapper pre {
+/* 成对写出是为了压过 .article-content pre 与 .dark .prose pre 的背景/文字色 */
+.code-block-wrapper pre,
+.dark .code-block-wrapper pre {
   margin: 0;
   border-radius: 0;
+  background: var(--code-bg);
+  color: var(--code-pre-fg);
+}
+
+.code-block-wrapper pre code,
+.dark .code-block-wrapper pre code {
+  background: var(--code-inline-bg);
+  color: inherit;
 }
 
 .page-transition {
@@ -534,58 +568,35 @@ h1, h2, h3, h4, h5, h6 {
   background: #334155;
 }
 
-.dark .code-block-wrapper {
-  background: #020617;
-}
-
-.dark .code-block-toolbar {
-  background: #1e293b;
-}
-
-.dark .code-copy-button:hover {
-  background: #334155;
-}
-
-/* 代码块亮色主题（块级切换，与站点主题无关），需覆盖 .article-content pre 与 .dark .prose pre */
+/* 块级主题覆盖：手动切换后固定为亮/暗，直到再次手动切换（变量覆盖与 .dark 同名属性按源码顺序取胜） */
 .code-block-actions {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-.code-theme-light,
-.dark .code-block-wrapper.code-theme-light {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+.code-block-wrapper.code-theme-light {
+  --code-bg: #f8fafc;
+  --code-border: #e2e8f0;
+  --code-toolbar-bg: #eef2f7;
+  --code-toolbar-fg: #475569;
+  --code-btn-fg: #475569;
+  --code-btn-hover-bg: #d9e0e8;
+  --code-btn-hover-fg: #0f172a;
+  --code-pre-fg: #1e293b;
+  --code-inline-bg: transparent;
 }
 
-.code-theme-light .code-block-toolbar,
-.dark .code-block-wrapper.code-theme-light .code-block-toolbar {
-  background: #eef2f7;
-  color: #475569;
-}
-
-.code-theme-light .code-copy-button,
-.dark .code-block-wrapper.code-theme-light .code-copy-button {
-  color: #475569;
-}
-
-.code-theme-light .code-copy-button:hover,
-.dark .code-block-wrapper.code-theme-light .code-copy-button:hover {
-  background: #d9e0e8;
-  color: #0f172a;
-}
-
-.code-theme-light pre,
-.dark .code-block-wrapper.code-theme-light pre {
-  background: #f8fafc;
-  color: #1e293b;
-}
-
-.code-theme-light pre code,
-.dark .code-block-wrapper.code-theme-light pre code {
-  background: transparent;
-  color: inherit;
+.code-block-wrapper.code-theme-dark {
+  --code-bg: #020617;
+  --code-border: #1e293b;
+  --code-toolbar-bg: #1e293b;
+  --code-toolbar-fg: #cbd5e1;
+  --code-btn-fg: #e2e8f0;
+  --code-btn-hover-bg: #334155;
+  --code-btn-hover-fg: #fff;
+  --code-pre-fg: #e2e8f0;
+  --code-inline-bg: #334155;
 }
 
 @media (max-width: 640px) {

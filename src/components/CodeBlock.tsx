@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Check, Copy, Moon, Sun } from 'lucide-react';
+import { useSiteTheme } from '../hooks/useSiteTheme';
 
 interface CodeBlockProps {
   children: React.ReactNode;
@@ -10,7 +11,10 @@ interface CodeBlockProps {
 
 export const CodeBlock = ({ children, code, language, className = '' }: CodeBlockProps) => {
   const [copied, setCopied] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  // null = 跟随站点主题；手动切换后写入覆盖类，直到再次手动切换
+  const [override, setOverride] = useState<'light' | 'dark' | null>(null);
+  const siteTheme = useSiteTheme();
+  const theme = override ?? siteTheme;
 
   const handleCopy = async () => {
     try {
@@ -23,13 +27,17 @@ export const CodeBlock = ({ children, code, language, className = '' }: CodeBloc
   };
 
   return (
-    <div className={`code-block-wrapper${theme === 'light' ? ' code-theme-light' : ''}`}>
+    <div
+      className={
+        override ? `code-block-wrapper code-theme-${override}` : 'code-block-wrapper'
+      }
+    >
       <div className="code-block-toolbar">
         <span className="code-block-language">{language || 'CODE'}</span>
         <div className="code-block-actions">
           <button
             type="button"
-            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            onClick={() => setOverride(theme === 'dark' ? 'light' : 'dark')}
             className="code-copy-button"
             aria-label={theme === 'dark' ? '切换为亮色主题' : '切换为暗色主题'}
             title={theme === 'dark' ? '切换为亮色主题' : '切换为暗色主题'}
