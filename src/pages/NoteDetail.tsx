@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArticleToc } from '../components/ArticleToc';
 import { CodeBlock } from '../components/CodeBlock';
+import { Lightbox } from '../components/Lightbox';
 import { ReadingProgress } from '../components/ReadingProgress';
 import { noteApi } from '../api';
 import { Note } from '../types';
@@ -21,6 +22,17 @@ export const NoteDetail = () => {
   const headerRef = useRef<HTMLDivElement>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const { headings, activeId } = useArticleReading(contentRef);
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+
+  // 内容区委托点击：点正文图片放大查看；包在链接里的图保持跳转行为
+  const handleContentClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName !== 'IMG' || target.closest('a')) return;
+    const img = target as HTMLImageElement;
+    if (img.src) {
+      setLightbox({ src: img.src, alt: img.alt });
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -308,7 +320,7 @@ export const NoteDetail = () => {
                   </div>
                 </div>
 
-                <div ref={contentRef} className="article-content">
+                <div ref={contentRef} className="article-content" onClick={handleContentClick}>
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
@@ -343,6 +355,11 @@ export const NoteDetail = () => {
           </aside>
         </div>
       </main>
+      <Lightbox
+        src={lightbox?.src ?? null}
+        alt={lightbox?.alt}
+        onClose={() => setLightbox(null)}
+      />
     </div>
   );
 };

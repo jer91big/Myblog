@@ -4,6 +4,7 @@ import { Eye, Heart, Calendar, User, Share2, ArrowLeft, ArrowRight, Tag, FolderO
 import { BackToTop } from '../components/BackToTop';
 import { CommentSection } from '../components/CommentSection';
 import { ArticleToc } from '../components/ArticleToc';
+import { Lightbox } from '../components/Lightbox';
 import { ReadingProgress } from '../components/ReadingProgress';
 import { articleApi, commentApi } from '../api';
 import { Article, Comment } from '../types';
@@ -25,6 +26,17 @@ export const ArticleDetail = () => {
   const contentRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const { headings, activeId } = useArticleReading(contentRef);
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+
+  // 内容区委托点击：点正文图片放大查看；包在链接里的图保持跳转行为
+  const handleContentClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName !== 'IMG' || target.closest('a')) return;
+    const img = target as HTMLImageElement;
+    if (img.src) {
+      setLightbox({ src: img.src, alt: img.alt });
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -377,7 +389,7 @@ export const ArticleDetail = () => {
                   ))}
                 </div>
 
-                <div ref={contentRef} className="article-content">
+                <div ref={contentRef} className="article-content" onClick={handleContentClick}>
                   <div dangerouslySetInnerHTML={{ __html: article.content }} />
                 </div>
 
@@ -450,6 +462,11 @@ export const ArticleDetail = () => {
         </div>
       </main>
       <BackToTop />
+      <Lightbox
+        src={lightbox?.src ?? null}
+        alt={lightbox?.alt}
+        onClose={() => setLightbox(null)}
+      />
     </div>
   );
 };

@@ -220,7 +220,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .article-content img {
-  @apply max-w-full h-auto rounded-lg my-4;
+  display: block;
+  margin: 1rem auto;
+  width: auto;
+  height: auto;
+  max-width: 85%;
+  max-height: 70vh;
+  border-radius: 0.5rem;
+  cursor: zoom-in;
 }
 
 .article-content table {
@@ -599,9 +606,72 @@ h1, h2, h3, h4, h5, h6 {
   --code-inline-bg: #334155;
 }
 
+/* 图片点击放大遮罩 */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.85);
+  cursor: zoom-out;
+  animation: lightbox-fade 160ms ease;
+}
+
+.lightbox-image {
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+@keyframes lightbox-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox-overlay {
+    animation: none;
+  }
+}
+
+
 @media (max-width: 640px) {
   .article-content {
     font-size: 1rem;
+  }
+
+  .article-content img {
+    max-width: 100%;
   }
 
   .article-content h1 {
