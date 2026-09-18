@@ -242,10 +242,10 @@ export const ObsidianImportModal = ({
   const handleFilesSelected = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const fileList = event.target.files;
+    // 必须先取出文件再清空 value，否则 FileList 会被一并清空
+    const all = Array.from(event.target.files ?? []);
     event.target.value = ''; // 允许重复选择同一个文件夹
 
-    const all = Array.from(fileList ?? []);
     if (all.length === 0) return;
 
     const mdFiles = all.filter((file) => {
