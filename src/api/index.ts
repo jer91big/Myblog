@@ -487,6 +487,7 @@ export const noteApi = {
     content: string;
     tags?: string[];
     status: 'published' | 'draft';
+    folderId?: string | null;
   }): Promise<ApiResponse<Note>> => {
     const response = await authFetch(`${API_BASE_URL}/notes`, {
       method: 'POST',

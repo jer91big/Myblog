@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { Note } from '../models/Note.js';
+import { NoteFolder } from '../models/NoteFolder.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import {
   collectSubtreeIds,
@@ -12,6 +13,7 @@ const createNoteSchema = z.object({
   content: z.string().min(1),
   tags: z.array(z.string()).optional(),
   status: z.enum(['published', 'draft']).default('draft'),
+  folderId: z.string().nullable().optional(),
 });
 
 const updateNoteSchema = z.object({
@@ -155,13 +157,20 @@ export const createNote = async (
       return;
     }
 
-    const { title, content, tags = [], status } = validated.data;
+    const { title, content, tags = [], status, folderId } = validated.data;
+
+    const folder = folderId ? await NoteFolder.findById(folderId) : null;
+    if (folderId && !folder) {
+      res.status(404).json({ success: false, message: '文件夹不存在' });
+      return;
+    }
 
     const note = new Note({
       title,
       content,
       excerpt: content.substring(0, 200),
       authorId: req.user.id,
+      folderId: folder ? folder._id : null,
       tags,
       status,
     });
@@ -174,6 +183,7 @@ export const createNote = async (
       data: {
         id: note._id.toString(),
         title: note.title,
+        folderId: note.folderId ? note.folderId.toString() : null,
         tags: note.tags,
         status: note.status,
         createdAt: note.createdAt,

@@ -11,6 +11,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { noteApi } from '../../api';
 import { Note, NoteFolder } from '../../types';
 import { NoteFolderSidebar } from '../../components/NoteFolderSidebar';
+import { ObsidianImportModal } from '../../components/ObsidianImportModal';
 import {
   buildFolderTree,
   collectDescendantIds,
@@ -67,6 +68,7 @@ export const NoteManagement = () => {
   const [activeDragItem, setActiveDragItem] = useState<DragItem | null>(null);
   const [overFolderId, setOverFolderId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -355,13 +357,22 @@ export const NoteManagement = () => {
             <h1 className="font-display text-2xl font-bold text-gray-900">笔记管理</h1>
             <p className="text-gray-500 mt-1">管理您的 Markdown 笔记，拖拽笔记或文件夹进行整理</p>
           </div>
-          <Link
-            to="/admin/notes/new"
-            className="min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            新建笔记
-          </Link>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2 border border-accent-500 text-accent-600 rounded-lg hover:bg-accent-50 transition-colors"
+            >
+              <FolderInput className="w-5 h-5" />
+              导入 Obsidian
+            </button>
+            <Link
+              to="/admin/notes/new"
+              className="min-h-11 inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              新建笔记
+            </Link>
+          </div>
         </div>
 
         <div className="flex gap-6 items-start">
@@ -560,6 +571,17 @@ export const NoteManagement = () => {
           </div>
         ) : null}
       </DragOverlay>
+
+      <ObsidianImportModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        folders={folders}
+        defaultParentId={activeFolderId ?? null}
+        onImported={() => {
+          fetchFolders();
+          fetchNotes();
+        }}
+      />
     </DndContext>
   );
 };
