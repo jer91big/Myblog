@@ -16,6 +16,7 @@ interface ImportStats {
   total: number;
   created: number;
   updated: number;
+  deleted: number;
   skipped: number;
   failed: number;
   errors: string[];
@@ -119,31 +120,39 @@ export const ObsidianImportModal = ({
     throw new Error(`创建文件夹「${name}」失败：${res.message ?? '未知错误'}`);
   };
 
-  const collectExistingNoteIds = async (): Promise<Map<string, string>> => {
-    const map = new Map<string, string>();
+  const collectExistingNoteIds = async (): Promise<{
+    byKey: Map<string, string>;
+    unfiledByTitle: Map<string, string>;
+  }> => {
+    const byKey = new Map<string, string>();
+    const unfiledByTitle = new Map<string, string>();
     let page = 1;
     for (;;) {
       const res = await noteApi.getNotes({ page, limit: 100, status: 'all' });
       if (!res.success || !res.data) break;
       for (const note of res.data.notes) {
-        map.set(`${note.folderId ?? ''}|${note.title}`, note.id);
+        byKey.set(`${note.folderId ?? ''}|${note.title}`, note.id);
+        if (!note.folderId && !unfiledByTitle.has(note.title)) {
+          unfiledByTitle.set(note.title, note.id);
+        }
       }
       const pages = res.data.pagination?.pages ?? 1;
       if (page >= pages) break;
       page++;
     }
-    return map;
+    return { byKey, unfiledByTitle };
   };
 
   const runImport = async (mdFiles: File[], rootName: string) => {
     cancelRef.current = false;
     setPhase('importing');
-    setStats({ done: 0, total: mdFiles.length, created: 0, updated: 0, skipped: 0, failed: 0, errors: [] });
+    setStats({ done: 0, total: mdFiles.length, created: 0, updated: 0, deleted: 0, skipped: 0, failed: 0, errors: [] });
     setCurrentName('');
 
     const errors: string[] = [];
     let created = 0;
     let updated = 0;
+    let deleted = 0;
     let skipped = 0;
     let failed = 0;
 
@@ -156,7 +165,7 @@ export const ObsidianImportModal = ({
         targetParentId = await ensureFolder(targetParentId, truncateName(rootName));
       }
 
-      const existingIds = overwrite ? await collectExistingNoteIds() : new Map<string, string>();
+      const existing = overwrite ? await collectExistingNoteIds() : null;
 
       for (let i = 0; i < mdFiles.length; i++) {
         if (cancelRef.current) break;
@@ -180,12 +189,42 @@ export const ObsidianImportModal = ({
             skipped++;
           } else {
             const key = `${folderId ?? ''}|${title}`;
-            const existingId = overwrite ? existingIds.get(key) : undefined;
+            let existingId = existing?.byKey.get(key);
+            let claiming = false;
+            if (existing) {
+              const unfiledId = existing.unfiledByTitle.get(title);
+              if (unfiledId) {
+                existing.unfiledByTitle.delete(title);
+                if (existingId) {
+                  // 目标位置已有同名笔记：未归档那篇是之前删除文件夹留下的重复副本，清理掉
+                  const removed = await noteApi.deleteNote(unfiledId);
+                  if (removed.success) {
+                    deleted++;
+                  } else {
+                    failed++;
+                    errors.push(`清理重复笔记「${title}」失败：${removed.message ?? '未知错误'}`);
+                  }
+                } else {
+                  // 目标位置没有同名：认领未归档笔记，重新归位而不是新建重复
+                  existingId = unfiledId;
+                  claiming = true;
+                }
+              }
+            }
 
             if (existingId) {
               const res = await noteApi.updateNote(existingId, { content, status });
+              if (res.success && claiming && folderId) {
+                const moved = await noteApi.moveNoteToFolder(existingId, folderId);
+                if (!moved.success) {
+                  failed++;
+                  errors.push(`「${title}」归档失败：${moved.message ?? '未知错误'}`);
+                  continue;
+                }
+              }
               if (res.success) {
                 updated++;
+                existing.byKey.set(key, existingId);
               } else {
                 failed++;
                 errors.push(`「${title}」更新失败：${res.message ?? '未知错误'}`);
@@ -199,7 +238,7 @@ export const ObsidianImportModal = ({
               });
               if (res.success && res.data) {
                 created++;
-                existingIds.set(key, res.data.id);
+                existing?.byKey.set(key, res.data.id);
               } else {
                 failed++;
                 errors.push(`「${title}」上传失败：${res.message ?? '未知错误'}`);
@@ -212,7 +251,7 @@ export const ObsidianImportModal = ({
         } finally {
           setStats((prev) =>
             prev
-              ? { ...prev, done: prev.done + 1, created, updated, skipped, failed, errors }
+              ? { ...prev, done: prev.done + 1, created, updated, deleted, skipped, failed, errors }
               : prev
           );
         }
@@ -228,6 +267,7 @@ export const ObsidianImportModal = ({
             ...prev,
             created,
             updated,
+            deleted,
             skipped,
             failed,
             errors,
@@ -339,7 +379,7 @@ export const ObsidianImportModal = ({
               className="w-4 h-4 text-accent-500 rounded"
             />
             <label htmlFor="obsidian-overwrite" className="text-sm text-gray-700">
-              覆盖更新同名笔记（重复导入时同步内容，不产生重复）
+              同步同名笔记（覆盖更新内容；「未归档」中的同名笔记会被认领归位或清理重复，不产生多余副本）
             </label>
           </div>
         </div>
@@ -363,7 +403,9 @@ export const ObsidianImportModal = ({
             {phase === 'done' && (
               <div className="text-sm space-y-1">
                 <p className="text-gray-700">
-                  新建 {stats.created} 篇 · 更新 {stats.updated} 篇 · 跳过 {stats.skipped} 篇 · 失败 {stats.failed} 篇
+                  新建 {stats.created} 篇 · 更新 {stats.updated} 篇
+                  {stats.deleted > 0 && <> · 清理重复 {stats.deleted} 篇</>}
+                  {stats.skipped > 0 && <> · 跳过 {stats.skipped} 篇</>} · 失败 {stats.failed} 篇
                 </p>
                 {stats.errors.length > 0 && (
                   <div className="bg-red-50 text-red-700 rounded-lg p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
