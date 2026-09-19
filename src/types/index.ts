@@ -96,6 +96,8 @@ export interface NoteFolder {
   parentId: string | null;
   /** 递归计数：自身 + 全部子孙文件夹的笔记数 */
   noteCount: number;
+  /** 仅该文件夹直属的笔记数（不含子文件夹） */
+  directNoteCount: number;
   createdAt: string;
 }
 

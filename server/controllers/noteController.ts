@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
+import { Types } from 'mongoose';
 import { Note } from '../models/Note.js';
 import { NoteFolder } from '../models/NoteFolder.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
@@ -33,15 +34,33 @@ export const getNotes = async (
     const skip = (page - 1) * limit;
     const status = req.query.status as string;
     const folderId = req.query.folderId as string;
+    const directOnly = req.query.direct === '1' || req.query.direct === 'true';
 
     const query: any = {};
 
     if (folderId === 'null') {
       query.folderId = null;
     } else if (folderId) {
-      // 选中父文件夹时连同其所有子文件夹的笔记一起显示
-      const parentOf = await loadFolderParentMap();
-      query.folderId = { $in: collectSubtreeIds(parentOf, folderId) };
+      if (!Types.ObjectId.isValid(folderId)) {
+        // 非法 id 直接返回空列表，避免落到 mongoose 的 CastError
+        res.json({
+          success: true,
+          data: {
+            notes: [],
+            pagination: { total: 0, page, limit, pages: 0 },
+          },
+        });
+        return;
+      }
+
+      if (directOnly) {
+        // 侧边栏树按层级展示，只取该文件夹的直属笔记
+        query.folderId = new Types.ObjectId(folderId);
+      } else {
+        // 选中父文件夹时连同其所有子文件夹的笔记一起显示
+        const parentOf = await loadFolderParentMap();
+        query.folderId = { $in: collectSubtreeIds(parentOf, folderId) };
+      }
     }
 
     if (status === 'all' || !status) {

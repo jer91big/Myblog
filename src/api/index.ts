@@ -466,6 +466,8 @@ export const noteApi = {
     limit?: number;
     status?: string;
     folderId?: string;
+    /** 只取该文件夹的直属笔记，不包含子文件夹 */
+    direct?: boolean;
   }): Promise<ApiResponse<{ notes: Note[]; pagination: any }>> => {
     const response = await authFetch(buildUrl('/notes', params), {
       method: 'GET',

@@ -99,6 +99,7 @@ export const getFolders = async (
           name: folder.name,
           parentId: folder.parentId ? folder.parentId.toString() : null,
           noteCount: computeTotal(folder._id.toString()),
+          directNoteCount: directCount.get(folder._id.toString()) ?? 0,
           createdAt: folder.createdAt,
         })),
         unfiledCount,

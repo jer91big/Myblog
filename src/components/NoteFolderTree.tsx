@@ -1,15 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Check,
   ChevronDown,
   ChevronRight,
+  FileText,
   Folder,
   FolderOpen,
   X,
 } from 'lucide-react';
 import { FolderNode, getAncestorIds } from '../lib/folderTree';
-import type { NoteFolder } from '../types';
+import type { Note, NoteFolder } from '../types';
+import { noteApi } from '../api';
 import { FolderContextMenu } from './FolderContextMenu';
 import { useFolderTreeActions, type RenameSession } from '../hooks/useFolderTreeActions';
 
@@ -38,8 +41,11 @@ interface TreeItemProps {
   canManage: boolean;
   childInputActive: boolean;
   childName: string;
+  notesByFolder: Record<string, Note[]>;
+  loadingIds: Set<string>;
   onToggle: (id: string) => void;
   onSelect: (folderId: string) => void;
+  onOpenNote: (noteId: string) => void;
   onChildNameChange: (value: string) => void;
   onSubmitChild: () => void;
   onCancelChild: () => void;
@@ -58,8 +64,11 @@ function TreeItem({
   canManage,
   childInputActive,
   childName,
+  notesByFolder,
+  loadingIds,
   onToggle,
   onSelect,
+  onOpenNote,
   onChildNameChange,
   onSubmitChild,
   onCancelChild,
@@ -70,9 +79,13 @@ function TreeItem({
   onContextMenu,
 }: TreeItemProps) {
   const isEditing = rename?.id === node.id;
-  const hasChildren = node.children.length > 0;
+  // 只挂了直属笔记（没有子文件夹）的文件夹同样要能展开
+  const hasChildren = node.children.length > 0 || (node.directNoteCount ?? 0) > 0;
   const isExpanded = expandedIds.has(node.id);
   const isActive = activeFolderId === node.id;
+  const notes = notesByFolder[node.id];
+  const isLoadingNotes = loadingIds.has(node.id);
+  const childIndent = 10 + (node.depth + 1) * 14;
 
   return (
     <div>
@@ -166,7 +179,7 @@ function TreeItem({
       {/* 内联新建子文件夹输入框 */}
       {childInputActive && (
         <div
-          style={{ paddingLeft: 10 + (node.depth + 1) * 14 }}
+          style={{ paddingLeft: childIndent }}
           className="flex items-center gap-1 pr-3 py-1.5"
         >
           <input
@@ -208,8 +221,11 @@ function TreeItem({
               canManage={canManage}
               childInputActive={childInputActive}
               childName={childName}
+              notesByFolder={notesByFolder}
+              loadingIds={loadingIds}
               onToggle={onToggle}
               onSelect={onSelect}
+              onOpenNote={onOpenNote}
               onChildNameChange={onChildNameChange}
               onSubmitChild={onSubmitChild}
               onCancelChild={onCancelChild}
@@ -220,6 +236,28 @@ function TreeItem({
               onContextMenu={onContextMenu}
             />
           ))}
+
+          {/* 直属笔记：排在子文件夹之后，点击进入笔记详情 */}
+          {notes?.map((note) => (
+            <button
+              key={note.id}
+              onClick={() => onOpenNote(note.id)}
+              style={{ paddingLeft: childIndent + 24 }}
+              className="flex items-center gap-1.5 w-full pr-3 py-1.5 rounded-lg text-left text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <FileText className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+              <span className="flex-1 text-sm truncate">{note.title}</span>
+            </button>
+          ))}
+
+          {isLoadingNotes && (
+            <div
+              style={{ paddingLeft: childIndent + 24 }}
+              className="py-1.5 text-xs text-gray-400"
+            >
+              加载中…
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -236,9 +274,14 @@ export const NoteFolderTree = ({
   onSelect,
   actions,
 }: NoteFolderTreeProps) => {
+  const navigate = useNavigate();
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [childInputParentId, setChildInputParentId] = useState<string | null>(null);
   const [childName, setChildName] = useState('');
+  const [notesByFolder, setNotesByFolder] = useState<Record<string, Note[]>>({});
+  const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  const loadedRef = useRef<Set<string>>(new Set());
+  const inflightRef = useRef<Set<string>>(new Set());
   const {
     menu,
     openContextMenu,
@@ -249,6 +292,49 @@ export const NoteFolderTree = ({
     commitRename,
     cancelRename,
   } = useFolderTreeActions(actions?.onRenameFolder ?? noop);
+
+  // 展开时才拉取该文件夹的直属笔记，结果缓存到本地
+  const loadNotes = useCallback(async (folderId: string) => {
+    if (loadedRef.current.has(folderId) || inflightRef.current.has(folderId)) return;
+    inflightRef.current.add(folderId);
+    setLoadingIds((prev) => new Set(prev).add(folderId));
+
+    try {
+      const response = await noteApi.getNotes({
+        folderId,
+        direct: true,
+        status: 'published',
+        limit: 100,
+      });
+      if (response.success && response.data) {
+        loadedRef.current.add(folderId);
+        setNotesByFolder((prev) => ({ ...prev, [folderId]: response.data!.notes }));
+      }
+    } catch (error) {
+      console.error('Failed to load folder notes:', error);
+    } finally {
+      inflightRef.current.delete(folderId);
+      setLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(folderId);
+        return next;
+      });
+    }
+  }, []);
+
+  // 文件夹列表刷新（新建 / 重命名 / 计数变化）后作废缓存，避免树里停留在旧标题
+  useEffect(() => {
+    loadedRef.current.clear();
+    inflightRef.current.clear();
+    setNotesByFolder({});
+  }, [nodes]);
+
+  // 已展开的文件夹在缓存作废后重新拉取
+  useEffect(() => {
+    expandedIds.forEach((id) => {
+      void loadNotes(id);
+    });
+  }, [expandedIds, nodes, loadNotes]);
 
   // 选中深层文件夹时逐级展开祖先，避免选中项被折叠隐藏
   useEffect(() => {
@@ -313,8 +399,11 @@ export const NoteFolderTree = ({
           canManage={Boolean(actions)}
           childInputActive={childInputParentId === node.id}
           childName={childName}
+          notesByFolder={notesByFolder}
+          loadingIds={loadingIds}
           onToggle={toggle}
           onSelect={onSelect}
+          onOpenNote={(noteId) => navigate(`/notes/${noteId}`)}
           onChildNameChange={setChildName}
           onSubmitChild={submitChild}
           onCancelChild={() => {
