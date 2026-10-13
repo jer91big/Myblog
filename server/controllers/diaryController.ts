@@ -15,25 +15,35 @@ const createDiarySchema = z.object({
   title: z.string().max(200).optional(),
   content: z.string().min(1).max(MAX_CONTENT_LENGTH),
   date: dateSchema,
+  status: z.enum(['draft', 'completed']).optional(),
 });
 
 const updateDiarySchema = z.object({
   title: z.string().max(200).optional(),
   content: z.string().min(1).max(MAX_CONTENT_LENGTH).optional(),
   date: dateSchema.optional(),
+  status: z.enum(['draft', 'completed']).optional(),
 });
 
 // 统一存成当日 UTC 正午，避免各时区渲染时日期前移/后移一天
 const toNoonUtc = (date: string): Date => new Date(`${date}T12:00:00.000Z`);
 
-// 摘要需要剔除图片/链接/代码块语法，否则 base64 数据会整段写进摘要
+const ENTITIES: Record<string, string> = {
+  '&nbsp;': ' ',
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+};
+
+// 正文是富文本 HTML，摘要要剥掉标签；图片必须最先去掉，否则 base64 会整段进摘要
 const stripExcerpt = (content: string): string => {
   return content
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/^#{1,6}\s+/gm, '')
-    .replace(/[*_`>~]/g, '')
+    .replace(/<img[^>]*>/gi, ' ')
+    .replace(/<\/(p|div|li|h[1-6]|blockquote|pre|td|th)>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&amp;|&lt;|&gt;|&quot;|&#39;/g, (entity) => ENTITIES[entity] ?? ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 150);
@@ -44,6 +54,8 @@ const serializeDiary = (diary: any) => ({
   title: diary.title,
   excerpt: diary.excerpt,
   date: diary.date,
+  // status 是后加字段，早于它的文档里没有，读出来兜底成已完成
+  status: diary.status || 'completed',
   createdAt: diary.createdAt,
   updatedAt: diary.updatedAt,
 });
@@ -153,7 +165,7 @@ export const createDiary = async (
       return;
     }
 
-    const { title = '', content, date } = validated.data;
+    const { title = '', content, date, status = 'completed' } = validated.data;
 
     const diary = new Diary({
       title,
@@ -161,6 +173,7 @@ export const createDiary = async (
       excerpt: stripExcerpt(content),
       authorId: req.user.id,
       date: toNoonUtc(date),
+      status,
     });
 
     await diary.save();
@@ -211,7 +224,7 @@ export const updateDiary = async (
       return;
     }
 
-    const { title, content, date } = validated.data;
+    const { title, content, date, status } = validated.data;
 
     if (title !== undefined) diary.title = title;
     if (content !== undefined) {
@@ -219,6 +232,7 @@ export const updateDiary = async (
       diary.excerpt = stripExcerpt(content);
     }
     if (date !== undefined) diary.date = toNoonUtc(date);
+    if (status !== undefined) diary.status = status;
 
     await diary.save();
 

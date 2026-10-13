@@ -613,6 +613,7 @@ export const diaryApi = {
     title: string;
     content: string;
     date: string;
+    status: 'draft' | 'completed';
   }): Promise<ApiResponse<Diary>> => {
     const response = await authFetch(`${API_BASE_URL}/diaries`, {
       method: 'POST',
@@ -624,7 +625,12 @@ export const diaryApi = {
 
   updateDiary: async (
     id: string,
-    data: Partial<{ title: string; content: string; date: string }>
+    data: Partial<{
+      title: string;
+      content: string;
+      date: string;
+      status: 'draft' | 'completed';
+    }>
   ): Promise<ApiResponse<Diary>> => {
     const response = await authFetch(`${API_BASE_URL}/diaries/${id}`, {
       method: 'PUT',

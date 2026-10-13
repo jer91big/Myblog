@@ -501,9 +501,16 @@ export const Home = () => {
                             to={`/diaries/${diary.id}`}
                             className="block p-6 bg-transparent rounded-xl"
                           >
-                            <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
-                              <Calendar className="w-3.5 h-3.5" />
-                              {formatDiaryDate(diary.date)}
+                            <div className="flex items-center gap-2 text-xs text-gray-400 mb-2">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {formatDiaryDate(diary.date)}
+                              </span>
+                              {diary.status === 'draft' && (
+                                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">
+                                  草稿
+                                </span>
+                              )}
                             </div>
                             <h3 className="font-display text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-accent-600 transition-colors">
                               {diaryDisplayTitle(diary)}

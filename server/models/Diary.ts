@@ -6,6 +6,7 @@ export interface IDiary extends Document {
   excerpt: string;
   authorId: Types.ObjectId;
   date: Date;
+  status: 'draft' | 'completed';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,11 @@ const DiarySchema: Schema<IDiary> = new Schema(
     date: {
       type: Date,
       required: true,
+    },
+    status: {
+      type: String,
+      enum: ['draft', 'completed'],
+      default: 'completed',
     },
   },
   {

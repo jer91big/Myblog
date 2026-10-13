@@ -1,10 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Save, Eye, AlertCircle, Image as ImageIcon, ArrowLeft, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import {
+  Save,
+  AlertCircle,
+  Image as ImageIcon,
+  Bold,
+  Italic,
+  Heading2,
+  List,
+  Quote,
+  Code,
+  ArrowLeft,
+  Check,
+} from 'lucide-react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import ImageExtension from '@tiptap/extension-image';
 import { diaryApi } from '../api';
-import { dataImageUrlTransform } from '../lib/markdown';
 import { localDateInputValue, toDateInputValue } from '../lib/diary';
 
 // Vercel 函数请求体上限约 4.5MB，留出余量后封顶，超了就明确报错而不是 413
@@ -12,19 +25,37 @@ const MAX_PAYLOAD_BYTES = 4_200_000;
 // 单张图片压缩后仍超过这个体积就再压一轮
 const SECOND_PASS_THRESHOLD = 1_500_000;
 
+// 扩展实例放在模块作用域，避免每次渲染新建实例破坏 Tiptap 的配置比较
+const extensions = [
+  StarterKit,
+  ImageExtension.configure({
+    allowBase64: true,
+    HTMLAttributes: {
+      class: 'rounded-lg max-w-full',
+    },
+  }),
+  Placeholder.configure({
+    placeholder: '今天发生了什么？',
+  }),
+];
+
 export const DiaryEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
   const [date, setDate] = useState(() => localDateInputValue());
+  const [status, setStatus] = useState<'draft' | 'completed'>('completed');
+  const [loadedContent, setLoadedContent] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(id));
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState<'draft' | 'completed' | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const editor = useEditor({
+    extensions,
+    content: '',
+  });
 
   useEffect(() => {
     if (id) {
@@ -32,13 +63,22 @@ export const DiaryEditor = () => {
     }
   }, [id]);
 
+  // 正文要等编辑器实例和接口数据都就绪后写入，分开处理避免首次渲染时 editor 还是 null
+  useEffect(() => {
+    if (editor && loadedContent !== null) {
+      editor.commands.setContent(loadedContent);
+    }
+  }, [editor, loadedContent]);
+
   const fetchDiary = async () => {
     try {
       const response = await diaryApi.getDiaryById(id!);
       if (response.success && response.data) {
-        setTitle(response.data.title);
-        setContent(response.data.content || '');
-        setDate(toDateInputValue(response.data.date));
+        const diary = response.data;
+        setTitle(diary.title);
+        setDate(toDateInputValue(diary.date));
+        setStatus(diary.status);
+        setLoadedContent(diary.content || '');
       } else {
         setSaveError(response.message || '日记不存在或无权访问');
       }
@@ -76,23 +116,6 @@ export const DiaryEditor = () => {
     });
   };
 
-  // 在光标处插入内容并恢复光标，避免插入后跳回开头
-  const insertAtCursor = (snippet: string) => {
-    const textarea = textareaRef.current;
-    const cursor = textarea ? textarea.selectionStart : content.length;
-    const before = content.slice(0, cursor);
-    const after = content.slice(cursor);
-    const prefix = before && !before.endsWith('\n') ? '\n' : '';
-    const inserted = `${prefix}${snippet}\n`;
-    setContent(`${before}${inserted}${after}`);
-
-    const caret = cursor + inserted.length;
-    requestAnimationFrame(() => {
-      textarea?.focus();
-      textarea?.setSelectionRange(caret, caret);
-    });
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -113,11 +136,11 @@ export const DiaryEditor = () => {
     setIsCompressing(true);
     try {
       let dataUrl = await compressImage(file, 1080, 0.72);
-      // base64 内嵌会随请求体一起提交，过大时再压一轮
+      // base64 会随请求体一起提交，过大时再压一轮
       if (dataUrl.length > SECOND_PASS_THRESHOLD) {
         dataUrl = await compressImage(file, 800, 0.6);
       }
-      insertAtCursor(`![图片](${dataUrl})`);
+      editor?.chain().focus().setImage({ src: dataUrl }).run();
     } catch (error) {
       console.error('Failed to compress image:', error);
       setSaveError('图片处理失败，请重试');
@@ -127,22 +150,30 @@ export const DiaryEditor = () => {
     }
   };
 
-  const handleSave = async () => {
+  const insertImageByUrl = () => {
+    const url = prompt('请输入图片 URL：');
+    if (url) {
+      editor?.chain().focus().setImage({ src: url }).run();
+    }
+  };
+
+  const handleSave = async (nextStatus: 'draft' | 'completed') => {
     setSaveError('');
 
-    if (!content.trim()) {
+    const content = editor?.getHTML() || '';
+    if (!content || content === '<p></p>') {
       setSaveError('请输入日记内容');
       return;
     }
 
-    const payload = { title, content, date };
+    const payload = { title, content, date, status: nextStatus };
     // 用 Blob 量字节数，中文按 UTF-8 算才准
     if (new Blob([JSON.stringify(payload)]).size > MAX_PAYLOAD_BYTES) {
       setSaveError('日记内容过大（图片太多），请减少图片或改用图片链接');
       return;
     }
 
-    setIsSaving(true);
+    setSavingStatus(nextStatus);
     try {
       const response = id
         ? await diaryApi.updateDiary(id, payload)
@@ -159,7 +190,7 @@ export const DiaryEditor = () => {
       console.error('Failed to save diary:', error);
       setSaveError('保存失败：内容可能过大或网络异常');
     } finally {
-      setIsSaving(false);
+      setSavingStatus(null);
     }
   };
 
@@ -184,9 +215,16 @@ export const DiaryEditor = () => {
                 <ArrowLeft className="w-4 h-4" />
                 返回
               </Link>
-              <h1 className="font-display text-2xl font-bold text-gray-900">
-                {id ? '编辑日记' : '写日记'}
-              </h1>
+              <div className="flex items-center gap-3">
+                <h1 className="font-display text-2xl font-bold text-gray-900">
+                  {id ? '编辑日记' : '写日记'}
+                </h1>
+                {id && status === 'draft' && (
+                  <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded-full">
+                    草稿
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <input
@@ -196,19 +234,20 @@ export const DiaryEditor = () => {
                 className="min-h-11 px-3 py-2 border border-gray-200 rounded-lg text-gray-700 focus:border-accent-500 focus:outline-none"
               />
               <button
-                onClick={() => setShowPreview(!showPreview)}
-                className="min-h-11 flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Eye className="w-4 h-4" />
-                {showPreview ? '编辑' : '预览'}
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving || isCompressing}
-                className="min-h-11 flex items-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors disabled:opacity-50"
+                onClick={() => handleSave('draft')}
+                disabled={savingStatus !== null}
+                className="min-h-11 flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {isSaving ? '保存中...' : '保存'}
+                {savingStatus === 'draft' ? '保存中...' : '保存草稿'}
+              </button>
+              <button
+                onClick={() => handleSave('completed')}
+                disabled={savingStatus !== null}
+                className="min-h-11 flex items-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors disabled:opacity-50"
+              >
+                <Check className="w-4 h-4" />
+                {savingStatus === 'completed' ? '保存中...' : '完成'}
               </button>
             </div>
           </div>
@@ -220,58 +259,94 @@ export const DiaryEditor = () => {
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 space-y-4">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
             <input
               type="text"
               placeholder="标题（可留空，留空时以日期为标题）"
               value={title}
               maxLength={200}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-xl font-bold text-gray-900 border-b border-gray-200 pb-2 focus:border-accent-500 focus:outline-none"
+              className="w-full text-xl font-bold text-gray-900 border-b border-gray-200 pb-2 mb-4 focus:border-accent-500 focus:outline-none"
             />
 
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
+            {/* 编辑器工具栏 */}
+            <div className="flex items-center gap-1 border-b border-gray-100 pb-3 mb-3 flex-wrap">
+              <button
+                onClick={() => editor?.chain().focus().toggleBold().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('bold') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="加粗"
+              >
+                <Bold className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleItalic().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('italic') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="斜体"
+              >
+                <Italic className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('heading', { level: 2 }) ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="二级标题"
+              >
+                <Heading2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('bulletList') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="无序列表"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('blockquote') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="引用"
+              >
+                <Quote className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+                className={`p-2 rounded-lg transition-colors ${editor?.isActive('codeBlock') ? 'bg-accent-100 text-accent-700' : 'hover:bg-gray-100 text-gray-600'}`}
+                title="代码块"
+              >
+                <Code className="w-4 h-4" />
+              </button>
+              <span className="w-px h-5 bg-gray-200 mx-1" />
+              <button
+                onClick={insertImageByUrl}
+                className="p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600"
+                title="通过 URL 插入图片"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isCompressing}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 disabled:opacity-50"
+                title="上传本地图片"
               >
                 {isCompressing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <div className="animate-spin w-4 h-4 border-2 border-accent-500 border-t-transparent rounded-full" />
                 ) : (
                   <ImageIcon className="w-4 h-4" />
                 )}
-                插入图片
               </button>
-              <span className="text-xs text-gray-400">图片会压缩后随正文一起保存</span>
+              <span className="text-xs text-gray-400 ml-auto">
+                支持本地图片上传（自动压缩）和 URL 插入
+              </span>
             </div>
 
-            {showPreview ? (
-              <div className="prose prose-lg max-w-none min-h-[420px]">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  urlTransform={dataImageUrlTransform}
-                >
-                  {content || '*暂无内容*'}
-                </ReactMarkdown>
-              </div>
-            ) : (
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="今天发生了什么？支持 **Markdown** 格式..."
-                className="w-full min-h-[420px] p-4 font-mono text-sm leading-relaxed border-0 focus:outline-none resize-y rounded-xl bg-gray-50"
-                spellCheck={false}
-              />
-            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+
+            <EditorContent editor={editor} className="prose max-w-none overflow-x-auto" />
           </div>
         </div>
       </main>

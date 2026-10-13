@@ -111,9 +111,16 @@ export const Diaries = () => {
                       to={`/diaries/${diary.id}`}
                       className="block p-6 hover:translate-y-[-2px] transition-transform duration-200"
                     >
-                      <div className="flex items-center gap-1 text-sm text-gray-400 mb-3">
-                        <Calendar className="w-4 h-4" />
-                        {formatDiaryDate(diary.date)}
+                      <div className="flex items-center gap-2 text-sm text-gray-400 mb-3">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {formatDiaryDate(diary.date)}
+                        </span>
+                        {diary.status === 'draft' && (
+                          <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded-full">
+                            草稿
+                          </span>
+                        )}
                       </div>
                       <h2 className="font-display text-lg font-bold text-gray-900 mb-3 hover:text-accent-600 transition-colors line-clamp-2">
                         {diaryDisplayTitle(diary)}

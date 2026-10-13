@@ -123,6 +123,7 @@ export interface Diary {
   content?: string;
   excerpt: string;
   date: string;
+  status: 'draft' | 'completed';
   createdAt: string;
   updatedAt: string;
 }

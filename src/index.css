@@ -175,6 +175,20 @@ h1, h2, h3, h4, h5, h6 {
   @apply bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden;
 }
 
+/* Tiptap 富文本编辑区：没有这几条时书写区会塌陷成一行、占位符也不显示 */
+.tiptap {
+  min-height: 420px;
+  outline: none;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 .article-content {
   @apply prose prose-lg max-w-none;
 }

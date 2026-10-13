@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Calendar, ArrowLeft, PenLine, Trash2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { Lightbox } from '../components/Lightbox';
 import { diaryApi } from '../api';
 import { Diary } from '../types';
-import { dataImageUrlTransform } from '../lib/markdown';
 import { diaryDisplayTitle, formatDiaryDate } from '../lib/diary';
 
 export const DiaryDetail = () => {
@@ -134,21 +131,23 @@ export const DiaryDetail = () => {
           )}
 
           <div className="bg-white rounded-xl shadow-md p-6 sm:p-10">
-            <div className="flex items-center gap-1 text-sm text-gray-400 mb-3">
-              <Calendar className="w-4 h-4" />
-              {formatDiaryDate(diary.date)}
+            <div className="flex items-center gap-2 text-sm text-gray-400 mb-3">
+              <span className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                {formatDiaryDate(diary.date)}
+              </span>
+              {diary.status === 'draft' && (
+                <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded-full">
+                  草稿
+                </span>
+              )}
             </div>
             <h1 className="font-display text-3xl font-bold text-gray-900 mb-8">
               {diaryDisplayTitle(diary)}
             </h1>
 
-            <div className="prose prose-lg max-w-none" onClick={handleContentClick}>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                urlTransform={dataImageUrlTransform}
-              >
-                {diary.content || '*暂无内容*'}
-              </ReactMarkdown>
+            <div className="article-content" onClick={handleContentClick}>
+              <div dangerouslySetInnerHTML={{ __html: diary.content || '' }} />
             </div>
           </div>
         </article>
