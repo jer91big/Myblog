@@ -16,6 +16,9 @@ import { CategoryList } from '@/pages/CategoryList';
 import { TagList } from '@/pages/TagList';
 import { Notes } from '@/pages/Notes';
 import { NoteDetail } from '@/pages/NoteDetail';
+import { Diaries } from '@/pages/Diaries';
+import { DiaryDetail } from '@/pages/DiaryDetail';
+import { DiaryEditor } from '@/pages/DiaryEditor';
 import { AdminLayout } from '@/pages/admin/AdminLayout';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { ArticleManagement } from '@/pages/admin/ArticleManagement';
@@ -171,6 +174,46 @@ const AppRoutes = () => {
             <PublicLayout>
               <NoteDetail />
             </PublicLayout>
+          }
+        />
+        <Route
+          path="/diaries"
+          element={
+            <AuthProtected>
+              <PublicLayout>
+                <Diaries />
+              </PublicLayout>
+            </AuthProtected>
+          }
+        />
+        <Route
+          path="/diaries/new"
+          element={
+            <AuthProtected>
+              <PublicLayout>
+                <DiaryEditor />
+              </PublicLayout>
+            </AuthProtected>
+          }
+        />
+        <Route
+          path="/diaries/:id"
+          element={
+            <AuthProtected>
+              <PublicLayout>
+                <DiaryDetail />
+              </PublicLayout>
+            </AuthProtected>
+          }
+        />
+        <Route
+          path="/diaries/:id/edit"
+          element={
+            <AuthProtected>
+              <PublicLayout>
+                <DiaryEditor />
+              </PublicLayout>
+            </AuthProtected>
           }
         />
         <Route path="/login" element={<Login />} />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, Search, User, LogOut, PenLine, LayoutDashboard, X, Home, FolderOpen, Tag, BookOpen } from 'lucide-react';
+import { Menu, Search, User, LogOut, PenLine, LayoutDashboard, X, Home, FolderOpen, Tag, BookOpen, NotebookPen } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import FuzzyText from '../components/FuzzyText';
 import Dock from '../components/Dock';
@@ -74,6 +74,7 @@ export const Header = () => {
                 { icon: <FolderOpen className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '分类', onClick: () => navigate('/articles/category/all'), className: location.pathname.includes('/articles/category') ? 'dock-item-active' : '' },
                 { icon: <Tag className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '标签', onClick: () => navigate('/articles/tag/all'), className: location.pathname.includes('/articles/tag') ? 'dock-item-active' : '' },
                 { icon: <BookOpen className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '笔记', onClick: () => navigate('/notes'), className: location.pathname.includes('/notes') ? 'dock-item-active' : '' },
+                { icon: <NotebookPen className="w-6 h-6" style={{ color: showOpaque ? '#374151' : '#fff' }} />, label: '日记', onClick: () => navigate('/diaries'), className: location.pathname.includes('/diaries') ? 'dock-item-active' : '' },
               ]}
               panelHeight={48}
               baseItemSize={40}
@@ -196,6 +197,13 @@ export const Header = () => {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 笔记
+              </Link>
+              <Link
+                to="/diaries"
+                className="px-4 py-3 font-medium text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                日记
               </Link>
             </nav>
 

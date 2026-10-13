@@ -116,6 +116,17 @@ export interface Note {
   updatedAt: string;
 }
 
+export interface Diary {
+  id: string;
+  title: string;
+  /** 列表接口不返回正文，只有详情/编辑器才有 */
+  content?: string;
+  excerpt: string;
+  date: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SearchResponse {
   articles: Article[];
   count: number;

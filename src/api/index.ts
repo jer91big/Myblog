@@ -6,6 +6,8 @@ import {
   Comment,
   Note,
   NoteFolder,
+  Diary,
+  Pagination,
   AuthResponse,
   ApiResponse,
   ArticleListResponse,
@@ -582,6 +584,60 @@ export const noteApi = {
       method: 'PATCH',
       headers: headers(),
       body: JSON.stringify({ folderId }),
+    });
+    return response.json();
+  },
+};
+
+export const diaryApi = {
+  getDiaries: async (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{ diaries: Diary[]; pagination: Pagination }>> => {
+    const response = await authFetch(buildUrl('/diaries', params), {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+
+  getDiaryById: async (id: string): Promise<ApiResponse<Diary>> => {
+    const response = await authFetch(`${API_BASE_URL}/diaries/${id}`, {
+      method: 'GET',
+      headers: headers(),
+    });
+    return response.json();
+  },
+
+  createDiary: async (data: {
+    title: string;
+    content: string;
+    date: string;
+  }): Promise<ApiResponse<Diary>> => {
+    const response = await authFetch(`${API_BASE_URL}/diaries`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  updateDiary: async (
+    id: string,
+    data: Partial<{ title: string; content: string; date: string }>
+  ): Promise<ApiResponse<Diary>> => {
+    const response = await authFetch(`${API_BASE_URL}/diaries/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+
+  deleteDiary: async (id: string): Promise<ApiResponse<void>> => {
+    const response = await authFetch(`${API_BASE_URL}/diaries/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
     });
     return response.json();
   },

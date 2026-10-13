@@ -3,20 +3,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArticleCard } from '../components/ArticleCard';
 import { Sidebar } from '../components/Sidebar';
 import { Pagination } from '../components/Pagination';
-import { articleApi, categoryApi, tagApi, noteApi } from '../api';
-import { Article, Category, Tag, Note } from '../types';
-import { Sparkles, BookOpen, ArrowRight } from 'lucide-react';
+import { articleApi, categoryApi, tagApi, noteApi, diaryApi } from '../api';
+import { Article, Category, Tag, Note, Diary } from '../types';
+import { Sparkles, BookOpen, ArrowRight, NotebookPen, Calendar, PenLine } from 'lucide-react';
 import Waves from '../components/Waves';
 import SpecularButton from '../components/SpecularButton';
 import BorderGlow from '../components/BorderGlow';
+import { diaryDisplayTitle, formatDiaryDate } from '../lib/diary';
+import { useAuthStore } from '../store/authStore';
 import { gsap, ScrollTrigger } from '../hooks/useGsap';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export const Home = () => {
   const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [articles, setArticles] = useState<Article[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [diaries, setDiaries] = useState<Diary[]>([]);
   const [popularArticles, setPopularArticles] = useState<Article[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -28,12 +32,24 @@ export const Home = () => {
   const heroContentRef = useRef<HTMLDivElement>(null);
   const articlesGridRef = useRef<HTMLDivElement>(null);
   const notesGridRef = useRef<HTMLDivElement>(null);
+  const diariesGridRef = useRef<HTMLDivElement>(null);
   const articlesSectionRef = useRef<HTMLElement>(null);
   const notesSectionRef = useRef<HTMLElement>(null);
+  const diariesSectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     fetchData();
   }, [currentPage]);
+
+  // 登录态是异步拿到的，日记单独取，避免拖累首页其余请求
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchDiaries();
+    } else {
+      // 退出登录时清掉，避免切换账号时闪出上一个账号的日记
+      setDiaries([]);
+    }
+  }, [isAuthenticated]);
 
   // Hero 动画
   useEffect(() => {
@@ -176,6 +192,40 @@ export const Home = () => {
     return () => trigger.kill();
   }, [isLoading, notes]);
 
+  // 我的日记区块：在登录态之后才渲染，所以自带独立入场动画
+  useEffect(() => {
+    const section = diariesSectionRef.current;
+    if (!section || !diaries.length || !diariesGridRef.current) return;
+
+    const cards = diariesGridRef.current.querySelectorAll('.diary-card-item');
+    const heading = section.querySelector('.diary-section-heading');
+
+    const ctx = gsap.context(() => {
+      if (heading) {
+        gsap.from(heading, {
+          x: -30,
+          opacity: 0,
+          duration: 0.6,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: heading, start: 'top 85%', once: true },
+        });
+      }
+
+      if (cards.length) {
+        gsap.from(cards, {
+          y: 50,
+          opacity: 0,
+          stagger: 0.08,
+          duration: 0.6,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: diariesGridRef.current, start: 'top 85%', once: true },
+        });
+      }
+    }, section);
+
+    return () => ctx.revert();
+  }, [diaries]);
+
   // 区块标题入场
   useEffect(() => {
     if (isLoading) return;
@@ -232,6 +282,17 @@ export const Home = () => {
       console.error('Failed to fetch data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchDiaries = async () => {
+    try {
+      const response = await diaryApi.getDiaries({ limit: 4 });
+      if (response.success && response.data) {
+        setDiaries(response.data.diaries);
+      }
+    } catch (error) {
+      console.error('Failed to fetch diaries:', error);
     }
   };
 
@@ -407,6 +468,69 @@ export const Home = () => {
                 )}
               </div>
             </section>
+
+            {isAuthenticated && (
+              <section className="mt-12" ref={diariesSectionRef}>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="diary-section-heading font-display text-2xl md:text-3xl font-bold flex items-center gap-2">
+                    <span className="w-1 h-8 bg-emerald-500 rounded-full" />
+                    我的日记
+                  </h2>
+                  <Link
+                    to="/diaries"
+                    className="flex items-center gap-1 text-sm text-gray-500 hover:text-accent-500 transition-colors"
+                  >
+                    查看全部
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+                <div ref={diariesGridRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {diaries.length > 0 ? (
+                    diaries.map((diary) => (
+                      <div key={diary.id} className="diary-card-item">
+                        <BorderGlow
+                          glowColor="160 60"
+                          backgroundColor="#ffffff"
+                          borderRadius={16}
+                          glowRadius={30}
+                          glowIntensity={0.7}
+                          coneSpread={20}
+                          colors={['#6ee7b7', '#34d399', '#a7f3d0']}
+                        >
+                          <Link
+                            to={`/diaries/${diary.id}`}
+                            className="block p-6 bg-transparent rounded-xl"
+                          >
+                            <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {formatDiaryDate(diary.date)}
+                            </div>
+                            <h3 className="font-display text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-accent-600 transition-colors">
+                              {diaryDisplayTitle(diary)}
+                            </h3>
+                            <p className="text-gray-600 text-sm line-clamp-2">
+                              {diary.excerpt || '（无正文摘要）'}
+                            </p>
+                          </Link>
+                        </BorderGlow>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-12 bg-white rounded-xl">
+                      <NotebookPen className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+                      <p className="text-gray-500 mb-4">还没有日记，今天想记点什么？</p>
+                      <Link
+                        to="/diaries/new"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-lg hover:bg-accent-600 transition-colors"
+                      >
+                        <PenLine className="w-4 h-4" />
+                        写日记
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
             <Pagination
               currentPage={currentPage}
