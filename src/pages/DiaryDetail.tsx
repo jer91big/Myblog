@@ -1,10 +1,89 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Calendar, ArrowLeft, PenLine, Trash2 } from 'lucide-react';
 import { Lightbox } from '../components/Lightbox';
+import HalftoneReveal from '../components/HalftoneReveal';
 import { diaryApi } from '../api';
 import { Diary } from '../types';
 import { diaryDisplayTitle, formatDiaryDate } from '../lib/diary';
+
+interface ContentImage {
+  src: string;
+  alt: string;
+}
+
+// WebGL2 缺失时网点效果渲染不出来，直接退回普通图片
+const supportsReveal = (() => {
+  try {
+    return Boolean(document.createElement('canvas').getContext('webgl2'));
+  } catch {
+    return false;
+  }
+})();
+
+// 正文图片的半调网点显现包装：近视口才挂载 WebGL 组件以控制上下文数量，
+// 跨域图片若读取像素会抛安全错误（WebGL 纹理同样会被污染），先用 1x1 探针验证
+const RevealImage = ({ src, alt, onOpen }: { src: string; alt: string; onOpen: () => void }) => {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(false);
+  const [usable, setUsable] = useState(false);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const observer = new IntersectionObserver(
+      (entries) => setNear(entries.some((entry) => entry.isIntersecting)),
+      { rootMargin: '400px 0px' }
+    );
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!supportsReveal) return;
+    if (src.startsWith('data:')) {
+      setUsable(true);
+      return;
+    }
+    let alive = true;
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      if (!alive) return;
+      try {
+        const probe = document.createElement('canvas').getContext('2d');
+        if (!probe) throw new Error('no 2d context');
+        probe.drawImage(image, 0, 0, 1, 1);
+        probe.getImageData(0, 0, 1, 1);
+        setUsable(true);
+      } catch {
+        setUsable(false);
+      }
+    };
+    image.onerror = () => {
+      if (alive) setUsable(false);
+    };
+    image.src = src;
+    return () => {
+      alive = false;
+    };
+  }, [src]);
+
+  return (
+    <div
+      ref={hostRef}
+      className="relative my-4 h-72 w-full cursor-zoom-in overflow-hidden rounded-lg md:h-96"
+      onClick={onOpen}
+    >
+      {near && usable ? (
+        <HalftoneReveal src={src} fit="contain" mode="color" clickBurst={false} />
+      ) : (
+        <img src={src} alt={alt} className="!m-0 h-full w-full max-w-none bg-white object-contain" />
+      )}
+    </div>
+  );
+};
 
 export const DiaryDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,13 +92,53 @@ export const DiaryDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+  const [lightbox, setLightbox] = useState<ContentImage | null>(null);
+  const [reveal, setReveal] = useState<{ html: string; images: ContentImage[] }>({
+    html: '',
+    images: [],
+  });
+  const [portalHosts, setPortalHosts] = useState<HTMLElement[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
     window.scrollTo({ top: 0, behavior: 'auto' });
     fetchDiary();
   }, [id]);
+
+  // 正文里的图片换成占位节点，再以 portal 把 HalftoneReveal 渲染回原位
+  useEffect(() => {
+    if (!diary) return;
+    const images: ContentImage[] = [];
+    const doc = new DOMParser().parseFromString(diary.content || '', 'text/html');
+    doc.body.querySelectorAll('img').forEach((img) => {
+      const src = img.getAttribute('src') || '';
+      if (!src) return;
+      const marker = doc.createElement('div');
+      marker.setAttribute('data-diary-image', String(images.length));
+      images.push({ src, alt: img.getAttribute('alt') || '' });
+      const parent = img.parentElement;
+      // 图片独占一个段落时整个段落换成占位块，避免留下空段落
+      if (
+        parent &&
+        parent.tagName === 'P' &&
+        parent.children.length === 1 &&
+        !parent.textContent?.trim()
+      ) {
+        parent.replaceWith(marker);
+      } else {
+        img.replaceWith(marker);
+      }
+    });
+    setReveal({ html: doc.body.innerHTML, images });
+  }, [diary]);
+
+  useLayoutEffect(() => {
+    if (!contentRef.current) return;
+    setPortalHosts(
+      Array.from(contentRef.current.querySelectorAll<HTMLElement>('[data-diary-image]'))
+    );
+  }, [reveal]);
 
   const fetchDiary = async () => {
     setIsLoading(true);
@@ -35,16 +154,6 @@ export const DiaryDetail = () => {
       setErrorMessage('加载日记失败，请重试');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 点正文图片放大；包在链接里的图保持跳转行为
-  const handleContentClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName !== 'IMG' || target.closest('a')) return;
-    const img = target as HTMLImageElement;
-    if (img.src) {
-      setLightbox({ src: img.src, alt: img.alt });
     }
   };
 
@@ -146,8 +255,20 @@ export const DiaryDetail = () => {
               {diaryDisplayTitle(diary)}
             </h1>
 
-            <div className="article-content" onClick={handleContentClick}>
-              <div dangerouslySetInnerHTML={{ __html: diary.content || '' }} />
+            <div ref={contentRef} className="article-content">
+              <div dangerouslySetInnerHTML={{ __html: reveal.html }} />
+              {portalHosts.map((host, index) => {
+                const image = reveal.images[index];
+                if (!image) return null;
+                return createPortal(
+                  <RevealImage
+                    src={image.src}
+                    alt={image.alt}
+                    onOpen={() => setLightbox(image)}
+                  />,
+                  host
+                );
+              })}
             </div>
           </div>
         </article>
