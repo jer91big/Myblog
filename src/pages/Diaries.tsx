@@ -4,6 +4,7 @@ import { NotebookPen, Calendar, PenLine } from 'lucide-react';
 import { diaryApi } from '../api';
 import { Diary } from '../types';
 import BorderGlow from '../components/BorderGlow';
+import { RevealText } from '../components/RevealText';
 import { Pagination } from '../components/Pagination';
 import { diaryDisplayTitle, formatDiaryDate } from '../lib/diary';
 import { gsap, ScrollTrigger } from '../hooks/useGsap';
@@ -125,9 +126,11 @@ export const Diaries = () => {
                       <h2 className="font-display text-lg font-bold text-gray-900 mb-3 hover:text-accent-600 transition-colors line-clamp-2">
                         {diaryDisplayTitle(diary)}
                       </h2>
-                      <p className="text-gray-600 text-sm line-clamp-3">
-                        {diary.excerpt || '（无正文摘要）'}
-                      </p>
+                      <RevealText
+                        className="text-gray-600 text-sm"
+                        lines={3}
+                        text={diary.excerpt || '（无正文摘要）'}
+                      />
                     </Link>
                   </BorderGlow>
                 </div>

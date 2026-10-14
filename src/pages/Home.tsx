@@ -9,6 +9,7 @@ import { Sparkles, BookOpen, ArrowRight, NotebookPen, Calendar, PenLine } from '
 import Waves from '../components/Waves';
 import SpecularButton from '../components/SpecularButton';
 import BorderGlow from '../components/BorderGlow';
+import { RevealText } from '../components/RevealText';
 import { diaryDisplayTitle, formatDiaryDate } from '../lib/diary';
 import { useAuthStore } from '../store/authStore';
 import { gsap, ScrollTrigger } from '../hooks/useGsap';
@@ -515,9 +516,11 @@ export const Home = () => {
                             <h3 className="font-display text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-accent-600 transition-colors">
                               {diaryDisplayTitle(diary)}
                             </h3>
-                            <p className="text-gray-600 text-sm line-clamp-2">
-                              {diary.excerpt || '（无正文摘要）'}
-                            </p>
+                            <RevealText
+                              className="text-gray-600 text-sm"
+                              lines={2}
+                              text={diary.excerpt || '（无正文摘要）'}
+                            />
                           </Link>
                         </BorderGlow>
                       </div>
